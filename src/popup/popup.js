@@ -7,21 +7,34 @@ async function setEnabledState(enabled) {
   await chrome.storage.local.set({ alwaysOn: enabled });
 }
 
+async function sendToTab(tabId, message) {
+  try {
+    await chrome.tabs.sendMessage(tabId, message);
+  } catch (e) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['content.js'],
+      });
+      await new Promise((r) => setTimeout(r, 300));
+      await chrome.tabs.sendMessage(tabId, message);
+    } catch (e2) {
+      showNotAvailable();
+    }
+  }
+}
+
 async function sendMessageToActiveTab(message) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return;
 
   const url = tab.url || '';
-  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('file://')) {
+  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('file://') || url.startsWith('about:')) {
     showNotAvailable();
     return;
   }
 
-  try {
-    await chrome.tabs.sendMessage(tab.id, message);
-  } catch {
-    showNotAvailable();
-  }
+  await sendToTab(tab.id, message);
 }
 
 function showNotAvailable() {
