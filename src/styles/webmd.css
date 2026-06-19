@@ -1,9 +1,9 @@
 .webmd-body {
   font-family: 'SF Mono', 'Menlo', 'Consolas', 'Courier New', monospace;
-  font-size: 14px;
-  max-width: 720px;
+  font-size: 17px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 2rem 2rem 4rem;
+  padding: 2rem 1.5rem 4rem;
   line-height: 1.65;
   color: #d4d4d4;
   background: #1e1e1e;
