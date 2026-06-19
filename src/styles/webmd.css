@@ -1,0 +1,139 @@
+.webmd-body {
+  font-family: Georgia, 'Times New Roman', serif;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  line-height: 1.7;
+  color: #1a1a1a;
+  background: #fefefe;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.webmd-content {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.webmd-content h1,
+.webmd-content h2,
+.webmd-content h3,
+.webmd-content h4,
+.webmd-content h5,
+.webmd-content h6 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+.webmd-content h1 {
+  font-size: 1.75rem;
+}
+
+.webmd-content h2 {
+  font-size: 1.4rem;
+}
+
+.webmd-content h3 {
+  font-size: 1.2rem;
+}
+
+.webmd-content p {
+  margin-bottom: 1em;
+}
+
+.webmd-content a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.webmd-content a:hover {
+  text-decoration: underline;
+}
+
+.webmd-content ul,
+.webmd-content ol {
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+.webmd-content li {
+  margin-bottom: 0.25em;
+}
+
+.webmd-content blockquote {
+  border-left: 3px solid #ddd;
+  margin: 1.5em 0;
+  padding-left: 1em;
+  color: #555;
+  font-style: italic;
+}
+
+.webmd-content code {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', 'Courier New', monospace;
+  background: #f4f4f4;
+  padding: 0.15em 0.3em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.webmd-content pre {
+  background: #f4f4f4;
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.webmd-content pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+
+.webmd-content hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 2em 0;
+}
+
+.webmd-content img {
+  display: none;
+}
+
+.webmd-content table {
+  border-collapse: collapse;
+  margin-bottom: 1em;
+  width: 100%;
+}
+
+.webmd-content th,
+.webmd-content td {
+  border: 1px solid #ddd;
+  padding: 0.5em;
+  text-align: left;
+}
+
+.webmd-content th {
+  background: #f4f4f4;
+  font-weight: 600;
+}
+
+.webmd-content .webmd-thin {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  color: #999;
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.webmd-content .webmd-url {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+  color: #bbb;
+  text-align: center;
+  word-break: break-all;
+}
