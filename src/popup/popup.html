@@ -12,49 +12,41 @@
   color: #1a1a1a;
   background: #fefefe;
 }
-
 .webmd-title {
   font-size: 16px;
   font-weight: 700;
   margin: 0 0 14px 0;
   letter-spacing: -0.5px;
 }
-
 .webmd-status {
   font-size: 11px;
   color: #888;
   margin-bottom: 8px;
   min-height: 14px;
 }
-
 .webmd-status.unavailable {
   color: #c44;
 }
-
 .webmd-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
 .webmd-toggle-label {
   font-size: 13px;
   cursor: pointer;
 }
-
 .webmd-toggle-switch {
   position: relative;
   width: 40px;
   height: 22px;
 }
-
 .webmd-toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
   position: absolute;
 }
-
 .webmd-toggle-slider {
   position: absolute;
   cursor: pointer;
@@ -66,7 +58,6 @@
   border-radius: 22px;
   transition: background 0.2s;
 }
-
 .webmd-toggle-slider::before {
   content: '';
   position: absolute;
@@ -78,11 +69,9 @@
   border-radius: 50%;
   transition: transform 0.2s;
 }
-
 .webmd-toggle-switch input:checked + .webmd-toggle-slider {
   background: #1a1a1a;
 }
-
 .webmd-toggle-switch input:checked + .webmd-toggle-slider::before {
   transform: translateX(18px);
 }
@@ -100,6 +89,59 @@
       </div>
     </div>
   </div>
-  <script src="popup.js"></script>
+  <script>
+const toggle = document.getElementById('always-on-toggle');
+const status = document.getElementById('webmd-status');
+
+function setStatus(text, isError) {
+  status.textContent = text;
+  status.className = 'webmd-status' + (isError ? ' unavailable' : '');
+}
+
+async function init() {
+  const result = await chrome.storage.local.get('alwaysOn');
+  toggle.checked = result.alwaysOn === true;
+  setStatus(toggle.checked ? 'Enabled' : 'Disabled', false);
+}
+
+toggle.addEventListener('change', async () => {
+  const enabled = toggle.checked;
+  await chrome.storage.local.set({ alwaysOn: enabled });
+  setStatus(enabled ? 'Enabling...' : 'Disabling...', false);
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    setStatus('No active tab', true);
+    return;
+  }
+
+  const url = tab.url || '';
+  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('file://') || url.startsWith('about:')) {
+    setStatus('Not available on this page', true);
+    return;
+  }
+
+  const messageType = enabled ? 'ALWAYS_ON' : 'ALWAYS_OFF';
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: messageType });
+    setStatus(enabled ? 'Enabled' : 'Disabled', false);
+  } catch (e) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js'],
+      });
+      await new Promise(r => setTimeout(r, 500));
+      await chrome.tabs.sendMessage(tab.id, { type: messageType });
+      setStatus(enabled ? 'Enabled (injected)' : 'Disabled', false);
+    } catch (e2) {
+      setStatus('Could not activate', true);
+    }
+  }
+});
+
+init();
+  </script>
 </body>
 </html>

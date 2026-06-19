@@ -22,7 +22,6 @@ const filesToCopy = [
   ['manifest.json', 'manifest.json'],
   ['src/background.js', 'background.js'],
   ['src/popup/popup.html', 'popup/popup.html'],
-  ['src/popup/popup.js', 'popup/popup.js'],
 ];
 
 for (const [src, dest] of filesToCopy) {
