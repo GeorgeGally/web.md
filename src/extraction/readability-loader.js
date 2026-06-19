@@ -3,6 +3,8 @@ import { Readability, isProbablyReaderable } from '@mozilla/readability';
 export function extractContent(document_) {
   const clone = document_.cloneNode(true);
 
+  stripUnwanted(clone);
+
   if (isProbablyReaderable(clone)) {
     const reader = new Readability(clone);
     const article = reader.parse();
@@ -20,11 +22,9 @@ export function extractContent(document_) {
   return null;
 }
 
-function extractFallback(clone) {
-  const body = clone.querySelector('body');
-  if (!body) return null;
-
-  const unwantedSelectors = [
+function stripUnwanted(clone) {
+  const selectors = [
+    'script', 'style', 'noscript',
     'nav', 'footer', 'header',
     '[role="navigation"]', '[role="banner"]',
     '[class*="cookie" i]', '[class*="consent" i]',
@@ -32,25 +32,37 @@ function extractFallback(clone) {
     '[class*="overlay" i]', '[class*="modal" i]',
     '[class*="share" i]', '[class*="social" i]',
     '[class*="newsletter" i]', '[class*="subscribe" i]',
+    '[class*="promo" i]', '[class*="sidebar" i]',
+    '[class*="related" i]', '[class*="recommend" i]',
     '[id*="cookie" i]', '[id*="consent" i]',
-    '[class*="sidebar" i]',
+    '[id*="banner" i]',
   ];
 
-  for (const selector of unwantedSelectors) {
+  const body = clone.querySelector('body') || clone;
+  for (const selector of selectors) {
     const elements = body.querySelectorAll(selector);
     for (const el of elements) {
       el.remove();
     }
   }
+}
 
-  const textContent = body.textContent?.trim() || '';
+function extractFallback(clone) {
+  const body = clone.querySelector('body');
+  if (!body) return null;
 
-  if (textContent.length < 50) {
+  const mainEl = clone.querySelector('main')
+    || clone.querySelector('[role="main"]')
+    || clone.querySelector('article')
+    || body;
+
+  const textContent = mainEl.textContent?.trim() || '';
+
+  if (textContent.length < 25) {
     return null;
   }
 
   const title = clone.querySelector('title')?.textContent?.trim() || '';
-  const mainEl = clone.querySelector('main') || clone.querySelector('[role="main"]') || clone.querySelector('article') || body;
   const contentHTML = mainEl.innerHTML || body.innerHTML;
 
   return {
