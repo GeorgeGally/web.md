@@ -3,18 +3,26 @@ import { Readability, isProbablyReaderable } from '@mozilla/readability';
 export function extractContent(document_) {
   const clone = document_.cloneNode(true);
 
-  stripUnwanted(clone);
+  const stripSelectors = [
+    'script', 'style', 'noscript',
+  ];
 
-  if (isProbablyReaderable(clone)) {
-    const reader = new Readability(clone);
-    const article = reader.parse();
-
-    if (article && article.content) {
-      return article;
-    }
+  const body = clone.querySelector('body') || clone.documentElement || clone;
+  for (const sel of stripSelectors) {
+    body.querySelectorAll(sel).forEach(el => el.remove());
   }
 
-  const fallback = extractFallback(clone);
+  let article = tryReadability(clone);
+  if (article && article.content) {
+    return article;
+  }
+
+  article = tryReadability(body);
+  if (article && article.content) {
+    return article;
+  }
+
+  const fallback = extractFallback(body);
   if (fallback) {
     return fallback;
   }
@@ -22,11 +30,24 @@ export function extractContent(document_) {
   return null;
 }
 
-function stripUnwanted(clone) {
-  const selectors = [
-    'script', 'style', 'noscript',
-    'nav', 'footer', 'header',
-    '[role="navigation"]', '[role="banner"]',
+function tryReadability(root) {
+  try {
+    if (isProbablyReaderable(root)) {
+      const reader = new Readability(root);
+      return reader.parse();
+    }
+
+    const reader = new Readability(root);
+    return reader.parse();
+  } catch (e) {
+    return null;
+  }
+}
+
+function extractFallback(body) {
+  const noiseSelectors = [
+    'nav', 'footer', 'header', 'aside',
+    '[role="navigation"]', '[role="banner"]', '[role="complementary"]',
     '[class*="cookie" i]', '[class*="consent" i]',
     '[class*="banner" i]', '[class*="popup" i]',
     '[class*="overlay" i]', '[class*="modal" i]',
@@ -34,35 +55,30 @@ function stripUnwanted(clone) {
     '[class*="newsletter" i]', '[class*="subscribe" i]',
     '[class*="promo" i]', '[class*="sidebar" i]',
     '[class*="related" i]', '[class*="recommend" i]',
-    '[id*="cookie" i]', '[id*="consent" i]',
-    '[id*="banner" i]',
+    '[class*="ad" i]',
   ];
 
-  const body = clone.querySelector('body') || clone;
-  for (const selector of selectors) {
-    const elements = body.querySelectorAll(selector);
-    for (const el of elements) {
-      el.remove();
-    }
+  for (const selector of noiseSelectors) {
+    try {
+      body.querySelectorAll(selector).forEach(el => el.remove());
+    } catch (e) {}
   }
-}
 
-function extractFallback(clone) {
-  const body = clone.querySelector('body');
-  if (!body) return null;
-
-  const mainEl = clone.querySelector('main')
-    || clone.querySelector('[role="main"]')
-    || clone.querySelector('article')
+  const mainEl = body.querySelector('main')
+    || body.querySelector('[role="main"]')
+    || body.querySelector('article')
     || body;
 
-  const textContent = mainEl.textContent?.trim() || '';
+  const textContent = (mainEl.textContent || '').trim();
 
-  if (textContent.length < 25) {
+  if (textContent.length < 10) {
     return null;
   }
 
-  const title = clone.querySelector('title')?.textContent?.trim() || '';
+  const title = (body.querySelector('title') || {}).textContent?.trim()
+    || (body.querySelector('h1') || {}).textContent?.trim()
+    || '';
+
   const contentHTML = mainEl.innerHTML || body.innerHTML;
 
   return {

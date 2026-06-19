@@ -16,66 +16,96 @@ async function shouldAutoRun() {
 
 async function transformPage() {
   if (transformed) return;
+  transformed = true;
+
+  const originalTitle = document.title;
+  const originalUrl = window.location.href;
 
   try {
-    const originalTitle = document.title;
-    const originalUrl = window.location.href;
-
     renderLoadingState();
+  } catch (e) {}
 
+  try {
     await waitForDOMSettled(document, {
       timeout: 8000,
       stabilityThreshold: 500,
     });
 
-    const originalClone = document.cloneNode(true);
+    const clone = document.cloneNode(true);
 
-    const extracted = extractContent(originalClone);
+    let extracted;
+    try {
+      extracted = extractContent(clone);
+    } catch (e) {
+      console.warn('web/md: extraction failed, trying raw fallback', e);
+    }
 
     if (!extracted || !extracted.content) {
+      const rawText = document.body?.innerText?.trim() || '';
+      if (rawText.length > 20) {
+        const title = document.title || '';
+        const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
+        renderMarkdownPage(lines, title);
+        return;
+      }
       renderThinContent(originalUrl, originalTitle);
-      transformed = true;
       return;
     }
 
     const turndownService = applyPuristPass();
     const markdown = turndownService.turndown(extracted.content);
 
-    renderMarkdownPage(markdown, originalTitle);
-    transformed = true;
+    if (!markdown || markdown.trim().length === 0) {
+      const rawText = document.body?.innerText?.trim() || '';
+      if (rawText.length > 20) {
+        const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
+        renderMarkdownPage(lines, document.title || '');
+        return;
+      }
+      renderThinContent(originalUrl, originalTitle);
+      return;
+    }
+
+    renderMarkdownPage(markdown, extracted.title || originalTitle);
   } catch (e) {
-    console.error('web/md transform error:', e);
+    console.error('web/md: transform error', e);
+    const rawText = document.body?.innerText?.trim() || '';
+    if (rawText.length > 20) {
+      const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
+      renderMarkdownPage(lines, document.title || originalTitle);
+    } else {
+      renderThinContent(originalUrl, originalTitle);
+    }
   }
 }
 
 function disable() {
-  if (transformed) {
-    window.location.reload();
-  }
+  window.location.reload();
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === 'STRIP') {
-    transformPage();
-    sendResponse({ ok: true });
-  } else if (message.type === 'ALWAYS_ON') {
-    transformPage();
-    sendResponse({ ok: true });
-  } else if (message.type === 'ALWAYS_OFF') {
-    disable();
-    sendResponse({ ok: true });
-  } else if (message.type === 'NAVIGATION') {
-    transformed = false;
-    transformPage();
-    sendResponse({ ok: true });
+  try {
+    if (message.type === 'STRIP' || message.type === 'ALWAYS_ON') {
+      transformPage();
+      sendResponse({ ok: true });
+    } else if (message.type === 'ALWAYS_OFF') {
+      disable();
+      sendResponse({ ok: true });
+    } else if (message.type === 'NAVIGATION') {
+      transformed = false;
+      transformPage();
+      sendResponse({ ok: true });
+    }
+  } catch (e) {
+    sendResponse({ ok: false, error: e.message });
   }
-
   return true;
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && 'alwaysOn' in changes) {
     if (changes.alwaysOn.newValue === true) {
+      transformed = false;
       transformPage();
     } else {
       disable();
