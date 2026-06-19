@@ -1,9 +1,9 @@
-async function getAlwaysOnState() {
+async function getEnabledState() {
   const result = await chrome.storage.local.get('alwaysOn');
   return result.alwaysOn === true;
 }
 
-async function setAlwaysOnState(enabled) {
+async function setEnabledState(enabled) {
   await chrome.storage.local.set({ alwaysOn: enabled });
 }
 
@@ -31,25 +31,19 @@ function showNotAvailable() {
 }
 
 async function updateUI() {
-  const alwaysOn = await getAlwaysOnState();
+  const enabled = await getEnabledState();
   const toggle = document.getElementById('always-on-toggle');
-  toggle.checked = alwaysOn;
+  toggle.checked = enabled;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const stripBtn = document.getElementById('strip-btn');
   const toggle = document.getElementById('always-on-toggle');
 
   await updateUI();
 
-  stripBtn.addEventListener('click', () => {
-    sendMessageToActiveTab({ type: 'STRIP' });
-    window.close();
-  });
-
   toggle.addEventListener('change', async () => {
     const enabled = toggle.checked;
-    await setAlwaysOnState(enabled);
+    await setEnabledState(enabled);
 
     if (enabled) {
       sendMessageToActiveTab({ type: 'ALWAYS_ON' });
