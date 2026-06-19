@@ -14,14 +14,16 @@ async function transformPage() {
   const originalTitle = document.title;
   const originalUrl = window.location.href;
 
-  renderLoadingState();
-
-  const settled = await waitForDOMSettled(document, {
+  await waitForDOMSettled(document, {
     timeout: 8000,
     stabilityThreshold: 500,
   });
 
-  const extracted = extractContent(document);
+  const originalClone = document.cloneNode(true);
+
+  renderLoadingState();
+
+  const extracted = extractContent(originalClone);
 
   if (!extracted || !extracted.content) {
     renderThinContent(originalUrl, originalTitle);
