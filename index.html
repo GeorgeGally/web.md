@@ -83,21 +83,9 @@
     }
 
     .brand-mark {
-      width: 28px;
-      height: 28px;
-      display: grid;
-      place-items: end start;
-      background: var(--surface);
-      border: 1px solid var(--line);
-    }
-
-    .brand-mark::after {
-      content: "";
-      width: 8px;
-      height: 8px;
-      margin: 5px;
-      background: var(--signal);
-      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: block;
     }
 
     .brand-muted {
@@ -130,10 +118,8 @@
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-      gap: 68px;
-      align-items: end;
-      min-height: calc(100vh - 72px);
+      grid-template-columns: minmax(0, 760px);
+      align-items: center;
       padding: 88px 0 76px;
     }
 
@@ -366,33 +352,6 @@
       line-height: 1.5;
     }
 
-    .flow {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1px;
-      background: var(--line);
-      border: 1px solid var(--line);
-    }
-
-    .flow-panel {
-      padding: 38px;
-      background: var(--surface);
-    }
-
-    .flow-panel pre {
-      margin: 0;
-      white-space: pre-wrap;
-      color: var(--muted);
-      font-family: "IBM Plex Mono", monospace;
-      font-size: clamp(13px, 1.5vw, 16px);
-      line-height: 1.7;
-    }
-
-    .flow-panel strong {
-      color: var(--ink);
-      font-weight: 600;
-    }
-
     .final {
       padding: 118px 0 96px;
       color: var(--paper);
@@ -468,7 +427,6 @@
 
       .hero,
       .section-heading,
-      .flow,
       .final-grid {
         grid-template-columns: 1fr;
       }
@@ -532,8 +490,7 @@
       }
 
       .specimen,
-      .popup-card,
-      .flow-panel {
+      .popup-card {
         padding: 22px;
       }
     }
@@ -544,8 +501,7 @@
     <header class="site-header">
       <nav class="wrap nav" aria-label="Primary navigation">
         <a class="brand" href="#top" aria-label="web.md home">
-          <span class="brand-mark" aria-hidden="true"></span>
-          web<span class="brand-muted">.md</span>
+          <img class="brand-mark" src="/icons/md.png" alt="" width="32" height="32" aria-hidden="true">
         </a>
         <div class="nav-links">
           <a href="#principles">Principles</a>
@@ -560,30 +516,12 @@
         <div>
           <p class="eyebrow">Chrome extension / semantic reading</p>
           <h1 id="hero-title">Read the web as markdown.</h1>
-          <p class="hero-copy">web.md removes visual clutter and renders pages as honest semantic text: headings, paragraphs, lists, links, quotes, and code.</p>
+          <p class="hero-copy">web.md removes ads and visual clutter, then renders pages as honest semantic text: headings, paragraphs, lists, links, quotes, and code.</p>
           <div class="actions" aria-label="Primary actions">
             <a class="button button-primary" href="https://github.com/GeorgeGally/web.md">Get the extension</a>
             <a class="button button-secondary" href="#features">See what it does</a>
           </div>
         </div>
-
-        <aside class="specimen" aria-label="web.md popup interface preview">
-          <div class="popup-card">
-            <p class="popup-title">web<span>.md</span></p>
-            <div class="control">
-              <span>Enabled</span>
-              <span class="toggle" aria-hidden="true"></span>
-            </div>
-            <div class="control">
-              <span>Dark Mode</span>
-              <span class="toggle" aria-hidden="true"></span>
-            </div>
-            <div class="control">
-              <span>Font Size</span>
-              <span class="rail" aria-hidden="true"></span>
-            </div>
-          </div>
-        </aside>
       </section>
 
       <section class="principles" id="principles" aria-label="Design principles">
@@ -619,8 +557,8 @@
             <p>Readability and site-specific extractors keep titles, body text, links, comments, and metadata when they matter.</p>
           </article>
           <article class="feature">
-            <h3>Removes noise</h3>
-            <p>Navigation, cookie banners, sidebars, related-content blocks, ads, and social widgets are stripped away.</p>
+            <h3>Removes ads and noise</h3>
+            <p>Ads, navigation, cookie banners, sidebars, related-content blocks, and social widgets are stripped away.</p>
           </article>
           <article class="feature">
             <h3>Stays with you</h3>
@@ -629,43 +567,11 @@
         </div>
       </section>
 
-      <section class="wrap section" aria-labelledby="flow-title">
-        <div class="section-heading">
-          <span class="section-label">Before / after</span>
-          <h2 id="flow-title">The product is a filter, not a replacement for the web.</h2>
-        </div>
-
-        <div class="flow" aria-label="Transformation example">
-          <div class="flow-panel">
-            <pre><strong>Before</strong>
-
-Header
-Share buttons
-Cookie banner
-Related stories
-Auto-play video
-Article body
-Footer links</pre>
-          </div>
-          <div class="flow-panel">
-            <pre><strong>After</strong>
-
-# Article title
-
-The article body in clean markdown.
-
-- Lists stay lists
-- Links stay links
-- Code stays readable</pre>
-          </div>
-        </div>
-      </section>
-
       <section class="final" id="install" aria-labelledby="install-title">
         <div class="wrap final-grid">
           <div>
             <h2 id="install-title">Install locally. Browse quietly.</h2>
-            <p>Build the extension, load `dist/` in Chrome, and turn noisy pages into semantic reading views whenever you need them.</p>
+            <p>Build the extension, load `dist/` in Chrome, and turn ad-heavy pages into quiet semantic reading views whenever you need them.</p>
           </div>
           <div class="actions">
             <a class="button button-primary" href="https://github.com/GeorgeGally/web.md">Open GitHub</a>

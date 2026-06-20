@@ -21,23 +21,18 @@ body.dark {
   --paper: #161616;
 }
 
-html, body {
-  background: transparent;
-}
-
 body {
   font-family: 'IBM Plex Mono', 'SF Mono', 'Menlo', monospace;
+  background: var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background 160ms ease, color 160ms ease;
 }
 
 .webmd-popup {
   width: 320px;
   padding: 48px 28px 48px;
-  background: var(--paper);
-  border-radius: 0 0 16px 16px;
-  transition: background 160ms ease, color 160ms ease;
 }
 
 /* Header — wordmark only */
