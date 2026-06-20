@@ -17,6 +17,9 @@ const JUNK_SELECTORS = [
 
 export function extractContent(document_) {
   const clone = document_.cloneNode(true);
+
+  flattenShadowDOM(clone);
+
   const body = clone.querySelector('body') || clone.documentElement || clone;
   if (!body) return null;
 
@@ -25,19 +28,15 @@ export function extractContent(document_) {
   const readabilityArticle = tryReadability(clone);
 
   if (readabilityArticle && readabilityArticle.content) {
-    const articleText = (readabilityArticle.textContent || '').trim();
-
     const commentHTML = findCommentSections(clone, readabilityArticle.content);
-
     if (commentHTML) {
       return {
         title: readabilityArticle.title,
         content: readabilityArticle.content + commentHTML,
-        textContent: articleText,
-        length: articleText.length,
+        textContent: (readabilityArticle.textContent || '').trim(),
+        length: (readabilityArticle.textContent || '').length,
       };
     }
-
     return readabilityArticle;
   }
 
@@ -55,6 +54,24 @@ export function extractContent(document_) {
     textContent: fullText,
     length: fullText.length,
   };
+}
+
+function flattenShadowDOM(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+  const hosts = [];
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.shadowRoot) {
+      hosts.push(node);
+    }
+  }
+  for (const host of hosts) {
+    try {
+      while (host.shadowRoot.firstChild) {
+        host.appendChild(host.shadowRoot.firstChild);
+      }
+    } catch (e) {}
+  }
 }
 
 function findCommentSections(clone, existingContent) {
@@ -89,9 +106,7 @@ function findCommentSections(clone, existingContent) {
         commentLike += art.outerHTML;
       }
     }
-    if (commentLike) {
-      return commentLike;
-    }
+    if (commentLike) return commentLike;
   }
 
   return html || null;
