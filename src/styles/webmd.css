@@ -84,6 +84,30 @@
   overflow-wrap: normal;
 }
 
+.webmd-content-bare h1,
+.webmd-content-bare h2,
+.webmd-content-bare h3,
+.webmd-content-bare h4,
+.webmd-content-bare h5,
+.webmd-content-bare h6 {
+  border: none;
+  padding: 0;
+}
+
+.webmd-content-bare pre,
+.webmd-content-bare blockquote,
+.webmd-content-bare code,
+.webmd-content-bare hr,
+.webmd-content-bare table,
+.webmd-content-bare th,
+.webmd-content-bare td {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  outline: none;
+}
+
 .webmd-bare {
   margin: 0;
   white-space: pre-wrap;
