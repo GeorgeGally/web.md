@@ -36,6 +36,24 @@ function extractRawText(doc) {
   return collectText(root).trim();
 }
 
+function extractMetadataMarkdown(doc) {
+  const parts = [];
+  const title = doc.querySelector('meta[property="og:title"]')?.content
+    || doc.querySelector('meta[name="twitter:title"]')?.content
+    || doc.querySelector('h1')?.textContent?.trim()
+    || doc.title
+    || '';
+  const description = doc.querySelector('meta[property="og:description"]')?.content
+    || doc.querySelector('meta[name="description"]')?.content
+    || doc.querySelector('meta[name="twitter:description"]')?.content
+    || '';
+
+  if (title) parts.push(`# ${title}`);
+  if (description && !title.includes(description)) parts.push(description);
+
+  return parts.join('\n\n');
+}
+
 async function extractRedditThread(url) {
   const parsed = new URL(url);
   if (!parsed.hostname.endsWith('reddit.com') || !parsed.pathname.includes('/comments/')) return null;
@@ -91,6 +109,12 @@ function collectText(node) {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
   if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return '';
 
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    const tagName = node.tagName;
+    if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'SVG', 'CANVAS'].includes(tagName)) return '';
+    if (node.hidden || node.getAttribute('aria-hidden') === 'true') return '';
+  }
+
   let text = '';
   if (node.nodeType === Node.ELEMENT_NODE && node.shadowRoot) {
     for (const child of node.shadowRoot.childNodes) {
@@ -124,6 +148,7 @@ async function transformPage() {
   } catch (e) {}
 
   const rawText = extractRawText(document);
+  const metadataMarkdown = extractMetadataMarkdown(document);
   lastMarkdown = '';
   lastTitle = originalTitle;
 
@@ -158,6 +183,13 @@ async function transformPage() {
   }
 
   if (!lastMarkdown) {
+    if (metadataMarkdown.length > 20) {
+      lastMarkdown = metadataMarkdown;
+      lastTitle = originalTitle;
+      renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+      return;
+    }
+
     if (rawText.length > 20) {
       const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
       lastMarkdown = lines;
