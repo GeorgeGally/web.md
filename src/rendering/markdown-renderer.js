@@ -2,9 +2,9 @@ import { marked } from 'marked';
 import WEBMD_CSS from '../styles/webmd.css?raw';
 
 export function renderLoadingState() {
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
+  resetDocumentElement();
+
+  const html = `<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>>> loading web.md</title>
@@ -32,16 +32,15 @@ export function renderLoadingState() {
 </head>
 <body>
   <div class="webmd-loading">>>loading web.md</div>
-</body>
-</html>`;
+</body>`;
 
   document.documentElement.innerHTML = html;
 }
 
 export function renderThinContent(url, title, { theme = 'dark', fontSize = 17 } = {}) {
-  const html = `<!DOCTYPE html>
-<html lang="en" data-theme="${theme}" style="--font-size: ${fontSize}px">
-<head>
+  applyDocumentPrefs(theme, fontSize);
+
+  const html = `<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${esc(title)} — web/md</title>
@@ -52,18 +51,16 @@ export function renderThinContent(url, title, { theme = 'dark', fontSize = 17 } 
     <p class="webmd-thin">No extractable content on this page.</p>
     <p class="webmd-url">${esc(url)}</p>
   </div>
-</body>
-</html>`;
+</body>`;
 
   document.documentElement.innerHTML = html;
 }
 
 export function renderMarkdownPage(markdown, originalTitle, { theme = 'dark', fontSize = 17 } = {}) {
+  applyDocumentPrefs(theme, fontSize);
   const htmlBody = marked.parse(markdown);
 
-  const html = `<!DOCTYPE html>
-<html lang="en" data-theme="${theme}" style="--font-size: ${fontSize}px">
-<head>
+  const html = `<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${esc(originalTitle)} — web/md</title>
@@ -73,10 +70,20 @@ export function renderMarkdownPage(markdown, originalTitle, { theme = 'dark', fo
   <div class="webmd-content">
     ${htmlBody}
   </div>
-</body>
-</html>`;
+</body>`;
 
   document.documentElement.innerHTML = html;
+}
+
+function applyDocumentPrefs(theme, fontSize) {
+  document.documentElement.lang = 'en';
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
+}
+
+function resetDocumentElement() {
+  document.documentElement.removeAttribute('data-theme');
+  document.documentElement.style.removeProperty('--font-size');
 }
 
 function esc(str) {

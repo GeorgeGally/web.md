@@ -36,6 +36,57 @@ function extractRawText(doc) {
   return collectText(root).trim();
 }
 
+async function extractRedditThread(url) {
+  const parsed = new URL(url);
+  if (!parsed.hostname.endsWith('reddit.com') || !parsed.pathname.includes('/comments/')) return null;
+
+  const jsonUrl = new URL(parsed.href);
+  jsonUrl.hash = '';
+  jsonUrl.search = '';
+  jsonUrl.pathname = jsonUrl.pathname.replace(/\/$/, '') + '.json';
+
+  const response = await fetch(jsonUrl.href, {
+    credentials: 'include',
+    headers: { accept: 'application/json' },
+  });
+
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  const post = data?.[0]?.data?.children?.[0]?.data;
+  const comments = data?.[1]?.data?.children || [];
+  if (!post?.title) return null;
+
+  const parts = [`# ${post.title}`];
+  if (post.selftext) parts.push(post.selftext);
+  if (comments.length > 0) parts.push('## Comments');
+
+  for (const comment of comments) {
+    appendRedditComment(parts, comment, 3);
+  }
+
+  return {
+    title: post.title,
+    markdown: parts.join('\n\n'),
+  };
+}
+
+function appendRedditComment(parts, node, depth) {
+  if (!node || node.kind !== 't1') return;
+  const comment = node.data;
+  if (!comment?.body) return;
+
+  const heading = '#'.repeat(Math.min(depth, 6));
+  const author = comment.author ? `u/${comment.author}` : 'comment';
+  parts.push(`${heading} ${author}`);
+  parts.push(comment.body);
+
+  const replies = comment.replies?.data?.children || [];
+  for (const reply of replies) {
+    appendRedditComment(parts, reply, depth + 1);
+  }
+}
+
 function collectText(node) {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
   if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return '';
@@ -76,6 +127,17 @@ async function transformPage() {
   lastMarkdown = '';
   lastTitle = originalTitle;
 
+  try {
+    const redditThread = await withTimeout(extractRedditThread(originalUrl), 6000);
+    if (redditThread?.markdown) {
+      lastMarkdown = redditThread.markdown;
+      lastTitle = redditThread.title || originalTitle;
+      renderLoadingState();
+      renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+      return;
+    }
+  } catch (e) {}
+
   let extracted;
   try {
     extracted = extractContent(document);
@@ -98,7 +160,9 @@ async function transformPage() {
   if (!lastMarkdown) {
     if (rawText.length > 20) {
       const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
-      renderMarkdownPage(lines, originalTitle, prefs);
+      lastMarkdown = lines;
+      lastTitle = originalTitle;
+      renderMarkdownPage(lastMarkdown, lastTitle, prefs);
       return;
     }
     renderThinContent(originalUrl, originalTitle, prefs);
