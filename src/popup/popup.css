@@ -4,76 +4,70 @@
 
 body {
   font-family: 'IBM Plex Mono', 'SF Mono', 'Menlo', monospace;
-  background: #fafaf7;
-  color: #1a1a1a;
+  background: #ffffff;
+  color: #111111;
   -webkit-font-smoothing: antialiased;
 }
 
 .webmd-popup {
-  width: 252px;
-  padding: 20px 20px 16px;
+  width: 260px;
+  padding: 24px 20px 20px;
 }
 
 .webmd-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 3px;
+  margin-bottom: 20px;
 }
 
 .webmd-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.2px;
-  color: #1a1a1a;
-}
-
-.webmd-version {
-  font-size: 9px;
-  color: #bbb;
-  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: #111;
 }
 
 .webmd-status {
   font-size: 9px;
-  color: #aaa;
-  margin-bottom: 18px;
-  min-height: 11px;
-  letter-spacing: 0.2px;
+  color: #999;
+  min-height: 12px;
+  margin-top: -12px;
+  margin-bottom: 16px;
+  letter-spacing: 0.3px;
 }
 
 .webmd-status.error {
-  color: #e8553d;
+  color: #111;
 }
 
-.webmd-section {
-  border-top: 1px solid #ededeb;
-  padding: 12px 0;
-}
+/* Each control row */
 
-.webmd-section:last-child {
-  padding-bottom: 0;
-}
-
-.webmd-row {
+.webmd-control {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid #ebebeb;
+}
+
+.webmd-control:first-of-type {
+  border-top: none;
 }
 
 .webmd-label {
   font-size: 12px;
   font-weight: 500;
-  color: #555;
+  color: #666;
+  letter-spacing: 0.2px;
   user-select: none;
-  letter-spacing: -0.1px;
 }
 
-/* Toggle */
+/* Toggle — geometric circle */
 
 .webmd-toggle {
   position: relative;
-  width: 34px;
+  width: 36px;
   height: 20px;
   flex-shrink: 0;
   cursor: pointer;
@@ -93,119 +87,107 @@ body {
   display: block;
   width: 100%;
   height: 100%;
-  background: #d9d9d4;
+  background: #d4d4d4;
   border-radius: 10px;
-  transition: background 0.25s ease;
-  pointer-events: none;
 }
 
 .webmd-toggle-knob {
   position: absolute;
-  top: 3px; left: 3px;
-  width: 14px;
-  height: 14px;
+  top: 2px; left: 2px;
+  width: 16px;
+  height: 16px;
   background: #fff;
   border-radius: 50%;
-  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1);
-  pointer-events: none;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  border: 1px solid #d4d4d4;
 }
 
 .webmd-toggle input:checked ~ .webmd-toggle-track {
-  background: #e8553d;
+  background: #111;
 }
 
 .webmd-toggle input:checked ~ .webmd-toggle-knob {
-  transform: translateX(14px);
+  transform: translateX(16px);
+  border-color: #111;
 }
 
-/* Theme selector */
+/* Theme — two simple buttons */
 
 .webmd-segmented {
   display: flex;
-  border: 1px solid #d9d9d4;
-  border-radius: 5px;
-  overflow: hidden;
+  gap: 1px;
 }
 
 .webmd-segmented-btn {
   font-family: inherit;
   font-size: 10px;
   font-weight: 500;
-  padding: 4px 10px;
-  border: none;
-  background: transparent;
+  padding: 3px 12px;
+  border: 1px solid #d4d4d4;
+  background: #fff;
   color: #999;
   cursor: pointer;
-  transition: all 0.2s ease;
-  letter-spacing: -0.1px;
+  letter-spacing: 0.3px;
+}
+
+.webmd-segmented-btn:first-child {
+  border-radius: 3px 0 0 3px;
+}
+
+.webmd-segmented-btn:last-child {
+  border-radius: 0 3px 3px 0;
 }
 
 .webmd-segmented-btn + .webmd-segmented-btn {
-  border-left: 1px solid #d9d9d4;
-}
-
-.webmd-segmented-btn:hover {
-  background: #f0f0eb;
-  color: #666;
+  border-left: none;
 }
 
 .webmd-segmented-btn.active {
-  background: #1a1a1a;
-  color: #fafaf7;
-  border-color: #1a1a1a;
+  background: #111;
+  color: #fff;
+  border-color: #111;
 }
 
 .webmd-segmented-btn.active + .webmd-segmented-btn {
-  border-left-color: #1a1a1a;
+  border-left: 1px solid #111;
 }
 
-/* Slider */
+/* Size — minimal slider */
 
-.webmd-slider-row {
+.webmd-slider-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.webmd-slider-row input[type="range"] {
+.webmd-slider-wrap input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  flex: 1;
-  height: 3px;
-  background: #d9d9d4;
-  border-radius: 2px;
+  width: 80px;
+  height: 2px;
+  background: #d4d4d4;
+  border-radius: 0;
   outline: none;
   cursor: pointer;
 }
 
-.webmd-slider-row input[type="range"]::-webkit-slider-thumb {
+.webmd-slider-wrap input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #1a1a1a;
-  cursor: pointer;
+  background: #111;
   border: none;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-  transition: transform 0.15s ease;
-}
-
-.webmd-slider-row input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-}
-
-.webmd-slider-row input[type="range"]::-webkit-slider-thumb:active {
-  transform: scale(0.95);
+  cursor: pointer;
 }
 
 .webmd-slider-val {
   font-size: 11px;
   font-weight: 500;
   color: #999;
-  min-width: 20px;
+  min-width: 22px;
   text-align: right;
   user-select: none;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
 }

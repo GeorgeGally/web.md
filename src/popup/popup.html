@@ -10,38 +10,31 @@
   <div class="webmd-popup">
     <div class="webmd-header">
       <h1 class="webmd-title">web/.md</h1>
-      <span class="webmd-version">v0.1</span>
     </div>
     <div id="webmd-status" class="webmd-status"></div>
 
-    <div class="webmd-section">
-      <div class="webmd-row" id="enabled-row">
-        <span class="webmd-label">Enabled</span>
-        <label class="webmd-toggle">
-          <input type="checkbox" id="always-on-toggle">
-          <span class="webmd-toggle-track"></span>
-          <span class="webmd-toggle-knob"></span>
-        </label>
+    <div class="webmd-control" id="enabled-control">
+      <span class="webmd-label">Enabled</span>
+      <label class="webmd-toggle">
+        <input type="checkbox" id="always-on-toggle">
+        <span class="webmd-toggle-track"></span>
+        <span class="webmd-toggle-knob"></span>
+      </label>
+    </div>
+
+    <div class="webmd-control">
+      <span class="webmd-label">Theme</span>
+      <div class="webmd-segmented">
+        <button class="webmd-segmented-btn" data-theme="dark">Dark</button>
+        <button class="webmd-segmented-btn" data-theme="light">Light</button>
       </div>
     </div>
 
-    <div class="webmd-section">
-      <div class="webmd-row">
-        <span class="webmd-label">Theme</span>
-        <div class="webmd-segmented">
-          <button class="webmd-segmented-btn" data-theme="dark">Dark</button>
-          <button class="webmd-segmented-btn" data-theme="light">Light</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="webmd-section">
-      <div class="webmd-row">
-        <span class="webmd-label">Size</span>
-        <div class="webmd-slider-row">
-          <input type="range" id="font-size-slider" min="12" max="28" value="17" step="1">
-          <span id="font-size-value" class="webmd-slider-val">17</span>
-        </div>
+    <div class="webmd-control">
+      <span class="webmd-label">Size</span>
+      <div class="webmd-slider-wrap">
+        <input type="range" id="font-size-slider" min="12" max="28" value="17" step="1">
+        <span id="font-size-value" class="webmd-slider-val">17</span>
       </div>
     </div>
   </div>

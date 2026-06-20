@@ -1,5 +1,5 @@
 const enabledToggle = document.getElementById('always-on-toggle');
-const enabledRow = document.getElementById('enabled-row');
+const enabledControl = document.getElementById('enabled-control');
 const statusEl = document.getElementById('webmd-status');
 const themeBtns = document.querySelectorAll('.webmd-segmented-btn');
 const fontSizeSlider = document.getElementById('font-size-slider');
@@ -89,7 +89,7 @@ enabledToggle.addEventListener('change', () => {
   handleEnabled(enabledToggle.checked);
 });
 
-enabledRow.addEventListener('click', (e) => {
+enabledControl.addEventListener('click', (e) => {
   if (e.target === enabledToggle) return;
   enabledToggle.checked = !enabledToggle.checked;
   handleEnabled(enabledToggle.checked);
