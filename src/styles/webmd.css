@@ -93,7 +93,9 @@
   tab-size: 2;
   background: none;
   border: none;
+  border-radius: 0;
   padding: 0;
+  outline: none;
 }
 
 .webmd-md-token {

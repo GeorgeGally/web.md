@@ -127,7 +127,10 @@ function restoreMissingPrimaryHeading(markdown, doc, fallbackTitle) {
   const heading = headingEl?.textContent?.trim() || fallbackTitle?.trim() || '';
   if (!heading || includesText(markdown, heading)) return markdown;
 
-  const headingMarkdown = `# ${heading}`;
+  const headingLink = headingEl?.querySelector('a[href]');
+  const headingMarkdown = headingLink
+    ? `# [${heading}](${headingLink.getAttribute('href')})`
+    : `# ${heading}`;
   const previousText = headingEl?.previousElementSibling?.textContent?.trim() || '';
   if (!previousText) return `${headingMarkdown}\n\n${markdown}`.trim();
 

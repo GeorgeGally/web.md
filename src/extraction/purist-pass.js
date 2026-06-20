@@ -51,6 +51,32 @@ export function applyPuristPass() {
     },
   });
 
+turndownService.addRule('linkWrappingBlock', {
+    filter: function (node) {
+      if (node.nodeName !== 'A' || !node.getAttribute('href')) return false;
+
+      for (const child of node.childNodes) {
+        if (child.nodeType === Node.ELEMENT_NODE && /^H[1-6]$/.test(child.tagName)) {
+          return true;
+        }
+      }
+      return false;
+    },
+    replacement: function (content, node) {
+      const href = node.getAttribute('href');
+      const headingChild = Array.from(node.childNodes).find(
+        (c) => c.nodeType === Node.ELEMENT_NODE && /^H[1-6]$/.test(c.tagName)
+      );
+      if (!headingChild || !href) return content;
+
+      const level = parseInt(headingChild.tagName[1]);
+      const hashes = '#'.repeat(level);
+      const text = headingChild.textContent.trim();
+
+      return `\n\n${hashes} [${text}](${href})\n\n`;
+    },
+  });
+
   const puristRule = {
     filter: function (node) {
       if (node.nodeType !== Node.ELEMENT_NODE) return false;
