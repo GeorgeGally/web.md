@@ -63,6 +63,142 @@ function isRedditThreadUrl(url) {
   }
 }
 
+function isYouTubeWatchUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return (parsed.hostname === 'www.youtube.com' || parsed.hostname === 'youtube.com')
+      && parsed.pathname === '/watch'
+      && parsed.searchParams.has('v');
+  } catch (e) {
+    return false;
+  }
+}
+
+function extractYouTubeVideo(doc, url) {
+  if (!isYouTubeWatchUrl(url)) return null;
+
+  const playerResponse = parseYouTubePlayerResponse(doc);
+  const details = playerResponse?.videoDetails || {};
+  const title = details.title
+    || doc.querySelector('meta[property="og:title"]')?.content
+    || doc.querySelector('h1 yt-formatted-string, h1')?.textContent?.trim()
+    || doc.title?.replace(/ - YouTube$/, '')
+    || '';
+  const author = details.author
+    || doc.querySelector('ytd-video-owner-renderer #channel-name a')?.textContent?.trim()
+    || doc.querySelector('#owner #channel-name a')?.textContent?.trim()
+    || '';
+  const channelUrl = doc.querySelector('ytd-video-owner-renderer #channel-name a')?.href
+    || doc.querySelector('link[itemprop="url"]')?.href
+    || '';
+  const description = details.shortDescription
+    || collectText(doc.querySelector('ytd-watch-metadata #description-inline-expander'))
+    || collectText(doc.querySelector('#description'))
+    || doc.querySelector('meta[name="description"]')?.content
+    || '';
+  const views = doc.querySelector('meta[itemprop="interactionCount"]')?.content
+    || doc.querySelector('.view-count')?.textContent?.trim()
+    || '';
+  const published = doc.querySelector('meta[itemprop="datePublished"]')?.content
+    || doc.querySelector('#info-strings yt-formatted-string')?.textContent?.trim()
+    || '';
+
+  if (!title && !description) return null;
+
+  const parts = [];
+  if (title) parts.push(`# ${title}`);
+
+  const meta = [];
+  if (author) meta.push(channelUrl ? `[${author}](${channelUrl})` : author);
+  if (views) meta.push(`${Number(views).toLocaleString()} views`);
+  if (published) meta.push(published);
+  if (meta.length > 0) parts.push(meta.join(' · '));
+
+  if (description) parts.push(description);
+
+  const comments = extractYouTubeComments(doc);
+  if (comments.length > 0) {
+    parts.push('## Comments');
+    parts.push(...comments);
+  }
+
+  return {
+    title: title || 'YouTube video',
+    markdown: parts.join('\n\n'),
+  };
+}
+
+function parseYouTubePlayerResponse(doc) {
+  for (const script of doc.scripts) {
+    const text = script.textContent || '';
+    const marker = 'var ytInitialPlayerResponse = ';
+    const start = text.indexOf(marker);
+    if (start === -1) continue;
+
+    const raw = extractJsonObject(text, start + marker.length);
+    if (!raw) continue;
+
+    try {
+      return JSON.parse(raw);
+    } catch (e) {}
+  }
+  return null;
+}
+
+function extractJsonObject(text, start) {
+  const firstBrace = text.indexOf('{', start);
+  if (firstBrace === -1) return '';
+
+  let depth = 0;
+  let inString = false;
+  let escaping = false;
+
+  for (let i = firstBrace; i < text.length; i++) {
+    const ch = text[i];
+
+    if (escaping) {
+      escaping = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaping = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (ch === '{') depth += 1;
+    if (ch === '}') depth -= 1;
+    if (depth === 0) return text.slice(firstBrace, i + 1);
+  }
+
+  return '';
+}
+
+function extractYouTubeComments(doc) {
+  const comments = [];
+  const seen = new Set();
+  const nodes = doc.querySelectorAll('ytd-comment-thread-renderer, ytd-comment-view-model');
+
+  for (const node of nodes) {
+    const author = node.querySelector('#author-text, h3 a, a[href^="/@"]')?.textContent?.trim() || 'comment';
+    const authorUrl = node.querySelector('#author-text, h3 a, a[href^="/@"]')?.href || '';
+    const text = collectText(node.querySelector('#content-text, yt-attributed-string#content-text, [id="content-text"]')).trim();
+    if (text.length < 5) continue;
+
+    const key = `${author}:${text.slice(0, 120)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    comments.push(`### ${authorUrl ? `[${author}](${authorUrl})` : author}\n\n${text}`);
+  }
+
+  return comments;
+}
+
 async function extractRedditThread(url) {
   const parsed = new URL(url);
   if (!isRedditThreadUrl(url)) return null;
@@ -200,6 +336,7 @@ function redditUserMarkdown(author) {
 }
 
 function collectText(node) {
+  if (!node) return '';
   if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
   if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return '';
 
@@ -245,6 +382,17 @@ async function transformPage() {
   const metadataMarkdown = extractMetadataMarkdown(document);
   lastMarkdown = '';
   lastTitle = originalTitle;
+
+  try {
+    const youtubeVideo = extractYouTubeVideo(document, originalUrl);
+    if (youtubeVideo?.markdown) {
+      lastMarkdown = youtubeVideo.markdown;
+      lastTitle = youtubeVideo.title || originalTitle;
+      renderLoadingState();
+      renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+      return;
+    }
+  } catch (e) {}
 
   try {
     const redditThread = await withTimeout(extractRedditThread(originalUrl), 6000);
