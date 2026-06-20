@@ -160,6 +160,88 @@ function restoreMissingHeroLinks(markdown, doc) {
   return blocks.join('\n\n').trim();
 }
 
+function isGitHubProfileUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === 'github.com' &&
+      /^\/[^/]+\/?$/.test(parsed.pathname) &&
+      !parsed.pathname.startsWith('/orgs/');
+  } catch (e) {
+    return false;
+  }
+}
+
+function extractGitHubProfile(doc) {
+  const parts = [];
+
+  const userName = doc.querySelector('.p-name')?.textContent?.trim() || '';
+  const login = doc.querySelector('.p-nickname')?.textContent?.trim() || '';
+  const bio = doc.querySelector('.p-note, [data-bio-text]')?.textContent?.trim() || '';
+  const location = doc.querySelector('.p-label')?.textContent?.trim() || '';
+  const website = doc.querySelector('.u-url')?.getAttribute('href') || '';
+
+  const editableArea = doc.querySelector('.js-profile-editable-area');
+  const followersEl = editableArea?.querySelector('a[href*="followers"]');
+  const followingEl = editableArea?.querySelector('a[href*="following"]');
+  const followers = followersEl?.textContent?.replace(/\s+/g, ' ').trim() || '';
+  const following = followingEl?.textContent?.replace(/\s+/g, ' ').trim() || '';
+
+  if (!userName && !login && !bio) return null;
+
+  const profileLogin = login || (userName ? '' : '');
+
+  if (userName) {
+    const heading = profileLogin && profileLogin !== userName ? `# ${userName} (${profileLogin})` : `# ${userName}`;
+    parts.push(heading);
+  } else if (profileLogin) {
+    parts.push(`# ${profileLogin}`);
+  }
+
+  if (bio) parts.push(bio);
+
+  const meta = [];
+  if (location) meta.push(location);
+  if (website) meta.push(`[website](${website})`);
+  if (followers) meta.push(followers);
+  if (following) meta.push(following);
+  if (meta.length > 0) parts.push(meta.join(' · '));
+
+  const ownerLogin = profileLogin || userName;
+  const repoAnchors = Array.from(doc.querySelectorAll('a'))
+    .filter(a => {
+      const href = a.getAttribute('href') || '';
+      return href === `/${ownerLogin}/${href.split('/')[2]}` ||
+        /^\/[A-Za-z0-9_-]+\/[A-Za-z0-9_.-]+$/.test(href);
+    })
+    .filter(a => {
+      const href = a.getAttribute('href') || '';
+      const segments = href.split('/').filter(Boolean);
+      return segments.length === 2 && segments[0].toLowerCase() === ownerLogin.toLowerCase();
+    });
+
+  const seenRepos = new Set();
+  const repos = [];
+  for (const a of repoAnchors) {
+    const name = a.textContent?.trim();
+    const href = a.getAttribute('href') || '';
+    if (name && href && !seenRepos.has(name)) {
+      seenRepos.add(name);
+      repos.push(`- [${name}](https://github.com${href})`);
+    }
+  }
+  if (repos.length > 0) {
+    parts.push(`## Repositories\n${repos.join('\n')}`);
+  }
+
+  const markdown = parts.filter(Boolean).join('\n\n');
+  if (!markdown) return null;
+
+  return {
+    title: userName || profileLogin || 'GitHub Profile',
+    markdown,
+  };
+}
+
 function isRedditThreadUrl(url) {
   try {
     const parsed = new URL(url);
@@ -553,6 +635,17 @@ async function transformPage() {
   } catch (e) {}
 
   try {
+    const githubProfile = extractGitHubProfile(document);
+    if (githubProfile?.markdown && isGitHubProfileUrl(originalUrl)) {
+      lastMarkdown = githubProfile.markdown;
+      lastTitle = githubProfile.title || originalTitle;
+      renderLoadingState();
+      renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+      return;
+    }
+  } catch (e) {}
+
+  try {
     const redditThread = await withTimeout(extractRedditThread(originalUrl), 6000);
     if (redditThread?.markdown) {
       lastMarkdown = redditThread.markdown;
@@ -657,9 +750,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       disable();
       sendResponse({ ok: true });
     } else if (message.type === 'NAVIGATION') {
-      transformed = false;
-      transformPage();
       sendResponse({ ok: true });
+      getPrefs().then((prefs) => {
+        if (prefs.alwaysOn) {
+          transformed = false;
+          transformPage();
+        }
+      });
     } else if (message.type === 'RERENDER') {
       reRender();
       sendResponse({ ok: true });
