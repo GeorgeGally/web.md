@@ -16,9 +16,7 @@ const JUNK_SELECTORS = [
 ];
 
 export function extractContent(document_) {
-  const clone = document_.cloneNode(true);
-
-  flattenShadowDOM(clone);
+  const clone = cloneWithShadowDOM(document_);
 
   const body = clone.querySelector('body') || clone.documentElement || clone;
   if (!body) return null;
@@ -56,22 +54,20 @@ export function extractContent(document_) {
   };
 }
 
-function flattenShadowDOM(root) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
-  const hosts = [];
-  let node;
-  while ((node = walker.nextNode())) {
-    if (node.shadowRoot) {
-      hosts.push(node);
+function cloneWithShadowDOM(node) {
+  const clone = node.cloneNode(false);
+
+  if (node.nodeType === Node.ELEMENT_NODE && node.shadowRoot) {
+    for (const child of node.shadowRoot.childNodes) {
+      clone.appendChild(cloneWithShadowDOM(child));
     }
   }
-  for (const host of hosts) {
-    try {
-      while (host.shadowRoot.firstChild) {
-        host.appendChild(host.shadowRoot.firstChild);
-      }
-    } catch (e) {}
+
+  for (const child of node.childNodes) {
+    clone.appendChild(cloneWithShadowDOM(child));
   }
+
+  return clone;
 }
 
 function findCommentSections(clone, existingContent) {

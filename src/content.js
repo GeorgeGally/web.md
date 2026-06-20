@@ -31,9 +31,27 @@ function withTimeout(promise, ms) {
 }
 
 function extractRawText(doc) {
-  const body = doc.body || doc.documentElement;
-  if (!body) return '';
-  return (body.innerText || body.textContent || '').trim();
+  const root = doc.body || doc.documentElement;
+  if (!root) return '';
+  return collectText(root).trim();
+}
+
+function collectText(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+  if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return '';
+
+  let text = '';
+  if (node.nodeType === Node.ELEMENT_NODE && node.shadowRoot) {
+    for (const child of node.shadowRoot.childNodes) {
+      text += collectText(child) + '\n';
+    }
+  }
+
+  for (const child of node.childNodes) {
+    text += collectText(child) + '\n';
+  }
+
+  return text;
 }
 
 async function transformPage() {
@@ -55,32 +73,25 @@ async function transformPage() {
   } catch (e) {}
 
   const rawText = extractRawText(document);
-  let clone;
+  lastMarkdown = '';
+  lastTitle = originalTitle;
+
+  let extracted;
   try {
-    clone = document.cloneNode(true);
+    extracted = extractContent(document);
   } catch (e) {}
 
   renderLoadingState();
 
-  lastMarkdown = '';
-  lastTitle = originalTitle;
-
-  if (clone) {
-    let extracted;
+  if (extracted && extracted.content) {
+    lastTitle = extracted.title || originalTitle;
     try {
-      extracted = extractContent(clone);
+      const turndownService = applyPuristPass();
+      lastMarkdown = turndownService.turndown(extracted.content) || '';
     } catch (e) {}
 
-    if (extracted && extracted.content) {
-      lastTitle = extracted.title || originalTitle;
-      try {
-        const turndownService = applyPuristPass();
-        lastMarkdown = turndownService.turndown(extracted.content) || '';
-      } catch (e) {}
-
-      if (!lastMarkdown || lastMarkdown.trim().length === 0) {
-        lastMarkdown = '';
-      }
+    if (!lastMarkdown || lastMarkdown.trim().length === 0) {
+      lastMarkdown = '';
     }
   }
 
