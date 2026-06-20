@@ -1,19 +1,19 @@
 const enabledToggle = document.getElementById('always-on-toggle');
 const enabledRow = document.getElementById('enabled-row');
-const status = document.getElementById('webmd-status');
-const themeBtns = document.querySelectorAll('.webmd-theme-btn');
+const statusEl = document.getElementById('webmd-status');
+const themeBtns = document.querySelectorAll('.webmd-segmented-btn');
 const fontSizeSlider = document.getElementById('font-size-slider');
 const fontSizeValue = document.getElementById('font-size-value');
 
 function setStatus(text, isError) {
-  status.textContent = text;
-  status.className = 'webmd-status' + (isError ? ' unavailable' : '');
+  statusEl.textContent = text;
+  statusEl.className = 'webmd-status' + (isError ? ' error' : '');
 }
 
 async function init() {
   const result = await chrome.storage.local.get(['alwaysOn', 'theme', 'fontSize']);
   enabledToggle.checked = result.alwaysOn === true;
-  setStatus(enabledToggle.checked ? 'Enabled' : 'Disabled', false);
+  setStatus(enabledToggle.checked ? 'Active' : '', false);
 
   const theme = result.theme || 'dark';
   themeBtns.forEach((btn) => {
@@ -27,9 +27,9 @@ async function init() {
 
 async function handleEnabled(enabled) {
   await chrome.storage.local.set({ alwaysOn: enabled });
-  setStatus(enabled ? 'Enabling...' : 'Disabling...', false);
+  setStatus(enabled ? 'Enabling\u2026' : 'Disabling\u2026', false);
   notifyTab(enabled ? 'ALWAYS_ON' : 'ALWAYS_OFF').then(() => {
-    setStatus(enabled ? 'Enabled' : 'Disabled', false);
+    setStatus(enabled ? 'Active' : '', false);
   });
 }
 
@@ -65,7 +65,7 @@ async function notifyTab(type) {
 
   const url = tab.url || '';
   if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('file://') || url.startsWith('about:')) {
-    setStatus('Not available on this page', true);
+    setStatus('Not available', true);
     return;
   }
 
@@ -80,7 +80,7 @@ async function notifyTab(type) {
       await new Promise((r) => setTimeout(r, 500));
       await chrome.tabs.sendMessage(tab.id, { type });
     } catch (e2) {
-      setStatus('Could not activate', true);
+      setStatus('Unavailable', true);
     }
   }
 }
