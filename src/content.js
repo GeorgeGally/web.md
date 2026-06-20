@@ -85,6 +85,8 @@ async function extractRedditThread(url) {
   if (!post?.title) return null;
 
   const parts = [`# ${post.title}`];
+  const meta = redditMetaLine(post.subreddit_name_prefixed || `r/${post.subreddit}`, post.author);
+  if (meta) parts.push(meta);
   if (post.selftext) parts.push(post.selftext);
   if (comments.length > 0) parts.push('## Comments');
 
@@ -108,9 +110,15 @@ function extractRedditThreadFromDOM(doc) {
     || post?.querySelector?.('h1')?.textContent?.trim()
     || doc.querySelector('h1')?.textContent?.trim()
     || doc.title;
+  const subreddit = redditSubredditFromUrl(window.location.href);
+  const author = post?.getAttribute?.('author')
+    || post?.getAttribute?.('post-author')
+    || post?.querySelector?.('[slot="authorName"], a[href^="/user/"], a[href^="/u/"]')?.textContent?.trim();
 
   const parts = [];
   if (title) parts.push(`# ${title}`);
+  const meta = redditMetaLine(subreddit, author);
+  if (meta) parts.push(meta);
 
   const postBody = post?.querySelector?.('[slot="text-body"], [data-testid="post-content"], [data-click-id="text"], div[id*="post-content"]')
     || post;
@@ -130,7 +138,7 @@ function extractRedditThreadFromDOM(doc) {
     const author = comment.getAttribute?.('author')
       || comment.querySelector?.('[slot="authorName"], a[href^="/user/"], a[href^="/u/"]')?.textContent?.trim()
       || 'comment';
-    commentParts.push(`### ${author}\n\n${text}`);
+    commentParts.push(`### ${redditUserMarkdown(author) || author}\n\n${text}`);
   }
 
   if (commentParts.length > 0) {
@@ -151,7 +159,7 @@ function appendRedditComment(parts, node, depth) {
   if (!comment?.body) return;
 
   const heading = '#'.repeat(Math.min(depth, 6));
-  const author = comment.author ? `u/${comment.author}` : 'comment';
+  const author = redditUserMarkdown(comment.author) || 'comment';
   parts.push(`${heading} ${author}`);
   parts.push(comment.body);
 
@@ -159,6 +167,36 @@ function appendRedditComment(parts, node, depth) {
   for (const reply of replies) {
     appendRedditComment(parts, reply, depth + 1);
   }
+}
+
+function redditMetaLine(subreddit, author) {
+  const parts = [];
+  const subredditLink = redditSubredditMarkdown(subreddit);
+  const userLink = redditUserMarkdown(author);
+  if (subredditLink) parts.push(subredditLink);
+  if (userLink) parts.push(userLink);
+  return parts.join(' · ');
+}
+
+function redditSubredditFromUrl(url) {
+  try {
+    const match = new URL(url).pathname.match(/\/r\/([^/]+)/i);
+    return match ? `r/${match[1]}` : '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function redditSubredditMarkdown(subreddit) {
+  const normalized = (subreddit || '').replace(/^\//, '').trim();
+  if (!/^r\/[A-Za-z0-9_]+$/.test(normalized)) return '';
+  return `[${normalized}](https://www.reddit.com/${normalized}/)`;
+}
+
+function redditUserMarkdown(author) {
+  const normalized = (author || '').replace(/^u\//, '').replace(/^\/u\//, '').trim();
+  if (!normalized || normalized === '[deleted]' || !/^[A-Za-z0-9_-]+$/.test(normalized)) return '';
+  return `[u/${normalized}](https://www.reddit.com/user/${normalized}/)`;
 }
 
 function collectText(node) {
