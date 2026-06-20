@@ -54,9 +54,18 @@ function extractMetadataMarkdown(doc) {
   return parts.join('\n\n');
 }
 
+function isRedditThreadUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.endsWith('reddit.com') && parsed.pathname.includes('/comments/');
+  } catch (e) {
+    return false;
+  }
+}
+
 async function extractRedditThread(url) {
   const parsed = new URL(url);
-  if (!parsed.hostname.endsWith('reddit.com') || !parsed.pathname.includes('/comments/')) return null;
+  if (!isRedditThreadUrl(url)) return null;
 
   const jsonUrl = new URL(parsed.href);
   jsonUrl.hash = '';
@@ -85,6 +94,53 @@ async function extractRedditThread(url) {
 
   return {
     title: post.title,
+    markdown: parts.join('\n\n'),
+  };
+}
+
+function extractRedditThreadFromDOM(doc) {
+  if (!isRedditThreadUrl(window.location.href)) return null;
+
+  const post = doc.querySelector('shreddit-post')
+    || doc.querySelector('[data-testid="post-container"]')
+    || doc.querySelector('article');
+  const title = post?.getAttribute?.('post-title')
+    || post?.querySelector?.('h1')?.textContent?.trim()
+    || doc.querySelector('h1')?.textContent?.trim()
+    || doc.title;
+
+  const parts = [];
+  if (title) parts.push(`# ${title}`);
+
+  const postBody = post?.querySelector?.('[slot="text-body"], [data-testid="post-content"], [data-click-id="text"], div[id*="post-content"]')
+    || post;
+  const postText = postBody ? collectText(postBody).trim() : '';
+  if (postText && !title?.includes(postText)) parts.push(postText);
+
+  const comments = doc.querySelectorAll('shreddit-comment, [data-testid="comment"], [id^="t1_"], article[aria-label*="comment" i]');
+  const seen = new Set();
+  const commentParts = [];
+  for (const comment of comments) {
+    const text = collectText(comment).trim();
+    if (text.length < 20) continue;
+    const normalized = text.replace(/\s+/g, ' ').slice(0, 160);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+
+    const author = comment.getAttribute?.('author')
+      || comment.querySelector?.('[slot="authorName"], a[href^="/user/"], a[href^="/u/"]')?.textContent?.trim()
+      || 'comment';
+    commentParts.push(`### ${author}\n\n${text}`);
+  }
+
+  if (commentParts.length > 0) {
+    parts.push('## Comments');
+    parts.push(...commentParts);
+  }
+
+  if (parts.join('\n').trim().length < 20) return null;
+  return {
+    title: title || doc.title || 'Reddit thread',
     markdown: parts.join('\n\n'),
   };
 }
@@ -163,6 +219,19 @@ async function transformPage() {
     }
   } catch (e) {}
 
+  const isRedditThread = isRedditThreadUrl(originalUrl);
+
+  try {
+    const redditThread = extractRedditThreadFromDOM(document);
+    if (redditThread?.markdown) {
+      lastMarkdown = redditThread.markdown;
+      lastTitle = redditThread.title || originalTitle;
+      renderLoadingState();
+      renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+      return;
+    }
+  } catch (e) {}
+
   let extracted;
   try {
     extracted = extractContent(document);
@@ -187,6 +256,11 @@ async function transformPage() {
       lastMarkdown = metadataMarkdown;
       lastTitle = originalTitle;
       renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+      return;
+    }
+
+    if (isRedditThread) {
+      renderThinContent(originalUrl, originalTitle, prefs);
       return;
     }
 
