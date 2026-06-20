@@ -32,6 +32,33 @@ const REMOVED_SELECTORS = [
   '[class*="promo" i]',
 ];
 
+function flattenHeadingContent(node) {
+  const parts = [];
+  for (const child of node.childNodes) {
+    if (child.nodeType === Node.ELEMENT_NODE) {
+      const tag = child.tagName;
+      if (tag === 'P' || tag === 'DIV' || tag === 'SPAN') {
+        const text = child.textContent?.trim();
+        if (text) parts.push(text);
+      } else if (/^H[1-6]$/.test(tag)) {
+        parts.push(flattenHeadingContent(child));
+      } else if (tag === 'A' && child.getAttribute('href')) {
+        const inner = child.textContent?.trim();
+        if (inner) parts.push(`[${inner}](${child.getAttribute('href')})`);
+      } else if (tag === 'SVG' || tag === 'IMG') {
+        continue;
+      } else {
+        const text = child.textContent?.trim();
+        if (text) parts.push(text);
+      }
+    } else if (child.nodeType === Node.TEXT_NODE) {
+      const text = child.textContent?.trim();
+      if (text) parts.push(text);
+    }
+  }
+  return parts.join(' — ');
+}
+
 export function applyPuristPass() {
   const turndownService = new TurndownService({
     headingStyle: 'atx',
@@ -51,7 +78,26 @@ export function applyPuristPass() {
     },
   });
 
-turndownService.addRule('linkWrappingBlock', {
+  turndownService.addRule('flattenHeadingChildren', {
+    filter: function (node) {
+      if (!/^H[1-6]$/.test(node.nodeName)) return false;
+      for (const child of node.childNodes) {
+        if (child.nodeType === Node.ELEMENT_NODE && (child.tagName === 'P' || child.tagName === 'DIV')) {
+          return true;
+        }
+      }
+      return false;
+    },
+    replacement: function (content, node) {
+      const level = parseInt(node.tagName[1]);
+      const hashes = '#'.repeat(level);
+      const text = flattenHeadingContent(node).trim();
+      if (!text) return '';
+      return `\n\n${hashes} ${text}\n\n`;
+    },
+  });
+
+  turndownService.addRule('linkWrappingBlock', {
     filter: function (node) {
       if (node.nodeName !== 'A' || !node.getAttribute('href')) return false;
 
@@ -71,8 +117,9 @@ turndownService.addRule('linkWrappingBlock', {
 
       const level = parseInt(headingChild.tagName[1]);
       const hashes = '#'.repeat(level);
-      const text = headingChild.textContent.trim();
+      const text = flattenHeadingContent(headingChild).trim();
 
+      if (!text) return content;
       return `\n\n${hashes} [${text}](${href})\n\n`;
     },
   });
