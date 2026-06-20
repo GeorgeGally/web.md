@@ -6,6 +6,7 @@ import { renderMarkdownPage, renderLoadingState, renderThinContent } from './ren
 let transformed = false;
 let lastMarkdown = '';
 let lastTitle = '';
+let disabling = false;
 
 async function getPrefs() {
   try {
@@ -104,6 +105,8 @@ function reRender() {
 }
 
 function disable() {
+  if (disabling) return;
+  disabling = true;
   window.location.reload();
 }
 

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "web/md",
+  "name": "web/.md",
   "version": "0.1.0",
   "description": "Strips websites to pure semantic markdown, like bots see them",
   "permissions": [
