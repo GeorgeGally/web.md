@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="20" fill="#ededed"/>
+  <circle cx="24" cy="88" r="9" fill="#ff5a00"/>
+  <text x="82" y="98" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="74" fill="#1a1a1a">md</text>
+</svg>

@@ -1,171 +1,164 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink: #111111;
+  --ink-soft: #5e5e5e;
+  --ink-faint: #a3a3a3;
+  --line: #e2e2e2;
+  --rail: #d0d0d0;
+  --paper: #ededed;
+  --accent: #ff5a00;      /* Braun signal orange — functional accent only */
+}
+
+body.dark {
+  --ink: #f2f2f2;
+  --ink-soft: #b0b0b0;
+  --ink-faint: #6e6e6e;
+  --line: #2a2a2a;
+  --rail: #3a3a3a;
+  --paper: #161616;
+}
+
+html, body {
+  background: transparent;
+}
 
 body {
   font-family: 'IBM Plex Mono', 'SF Mono', 'Menlo', monospace;
-  background: #ffffff;
-  color: #111111;
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .webmd-popup {
-  width: 260px;
-  padding: 24px 20px 20px;
+  width: 320px;
+  padding: 48px 28px 48px;
+  background: var(--paper);
+  border-radius: 0 0 16px 16px;
+  transition: background 160ms ease, color 160ms ease;
 }
 
+/* Header — wordmark only */
+
 .webmd-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .webmd-title {
-  font-size: 13px;
+  font-size: 22px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  color: #111;
+  letter-spacing: -0.6px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.webmd-ext {
+  color: var(--ink-faint);
+}
+
+/* Status — error feedback only, otherwise empty */
+
+.webmd-status:empty {
+  display: none;
 }
 
 .webmd-status {
-  font-size: 9px;
-  color: #999;
-  min-height: 12px;
-  margin-top: -12px;
-  margin-bottom: 16px;
+  margin-top: 16px;
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.3px;
+  color: var(--accent);
 }
 
-.webmd-status.error {
-  color: #111;
+/* Extras — only meaningful when enabled */
+
+.webmd-extras.is-hidden {
+  display: none;
 }
 
-/* Each control row */
+/* Control rows — generous, every control aligns to one right edge */
 
 .webmd-control {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-top: 1px solid #ebebeb;
-}
-
-.webmd-control:first-of-type {
-  border-top: none;
+  min-height: 60px;
 }
 
 .webmd-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--ink-soft);
   letter-spacing: 0.2px;
   user-select: none;
 }
 
-/* Toggle — geometric circle */
+/* Toggle — orange when on */
 
 .webmd-toggle {
   position: relative;
-  width: 36px;
-  height: 20px;
-  flex-shrink: 0;
+  width: 46px;
+  height: 26px;
   cursor: pointer;
 }
 
 .webmd-toggle input {
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
-  z-index: 1;
-  cursor: pointer;
   margin: 0;
+  cursor: pointer;
+  z-index: 1;
 }
 
 .webmd-toggle-track {
   display: block;
   width: 100%;
   height: 100%;
-  background: #d4d4d4;
-  border-radius: 10px;
+  background: var(--rail);
+  border-radius: 13px;
+  transition: background 160ms ease;
 }
 
 .webmd-toggle-knob {
   position: absolute;
-  top: 2px; left: 2px;
-  width: 16px;
-  height: 16px;
-  background: #fff;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
   border-radius: 50%;
-  border: 1px solid #d4d4d4;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 160ms ease;
 }
 
 .webmd-toggle input:checked ~ .webmd-toggle-track {
-  background: #111;
+  background: var(--accent);
 }
 
 .webmd-toggle input:checked ~ .webmd-toggle-knob {
-  transform: translateX(16px);
-  border-color: #111;
+  transform: translateX(20px);
 }
 
-/* Theme — two simple buttons */
-
-.webmd-segmented {
-  display: flex;
-  gap: 1px;
-}
-
-.webmd-segmented-btn {
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 3px 12px;
-  border: 1px solid #d4d4d4;
-  background: #fff;
-  color: #999;
-  cursor: pointer;
-  letter-spacing: 0.3px;
-}
-
-.webmd-segmented-btn:first-child {
-  border-radius: 3px 0 0 3px;
-}
-
-.webmd-segmented-btn:last-child {
-  border-radius: 0 3px 3px 0;
-}
-
-.webmd-segmented-btn + .webmd-segmented-btn {
-  border-left: none;
-}
-
-.webmd-segmented-btn.active {
-  background: #111;
-  color: #fff;
-  border-color: #111;
-}
-
-.webmd-segmented-btn.active + .webmd-segmented-btn {
-  border-left: 1px solid #111;
-}
-
-/* Size — minimal slider */
+/* Font Size — slider styled to match the toggle: pill rail, orange fill, white knob */
 
 .webmd-slider-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
 }
 
 .webmd-slider-wrap input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  width: 80px;
-  height: 2px;
-  background: #d4d4d4;
-  border-radius: 0;
+  width: 116px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--rail);
   outline: none;
   cursor: pointer;
 }
@@ -173,21 +166,21 @@ body {
 .webmd-slider-wrap input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: #111;
+  background: #ffffff;
   border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   cursor: pointer;
 }
 
 .webmd-slider-val {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
-  color: #999;
+  color: var(--ink-soft);
   min-width: 22px;
   text-align: right;
   user-select: none;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.2px;
 }

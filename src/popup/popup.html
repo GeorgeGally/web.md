@@ -8,10 +8,9 @@
 </head>
 <body>
   <div class="webmd-popup">
-    <div class="webmd-header">
-      <h1 class="webmd-title">web/.md</h1>
-    </div>
-    <div id="webmd-status" class="webmd-status"></div>
+    <header class="webmd-header">
+      <h1 class="webmd-title">web<span class="webmd-ext">.md</span></h1>
+    </header>
 
     <div class="webmd-control" id="enabled-control">
       <span class="webmd-label">Enabled</span>
@@ -22,21 +21,26 @@
       </label>
     </div>
 
-    <div class="webmd-control">
-      <span class="webmd-label">Theme</span>
-      <div class="webmd-segmented">
-        <button class="webmd-segmented-btn" data-theme="dark">Dark</button>
-        <button class="webmd-segmented-btn" data-theme="light">Light</button>
+    <div class="webmd-extras" id="webmd-extras">
+      <div class="webmd-control">
+        <span class="webmd-label">Dark Mode</span>
+        <label class="webmd-toggle">
+          <input type="checkbox" id="theme-toggle">
+          <span class="webmd-toggle-track"></span>
+          <span class="webmd-toggle-knob"></span>
+        </label>
+      </div>
+
+      <div class="webmd-control">
+        <span class="webmd-label">Font Size</span>
+        <div class="webmd-slider-wrap">
+          <input type="range" id="font-size-slider" min="12" max="28" value="17" step="1">
+          <span id="font-size-value" class="webmd-slider-val">17</span>
+        </div>
       </div>
     </div>
 
-    <div class="webmd-control">
-      <span class="webmd-label">Size</span>
-      <div class="webmd-slider-wrap">
-        <input type="range" id="font-size-slider" min="12" max="28" value="17" step="1">
-        <span id="font-size-value" class="webmd-slider-val">17</span>
-      </div>
-    </div>
+    <div id="webmd-status" class="webmd-status"></div>
   </div>
   <script src="popup.js"></script>
 </body>

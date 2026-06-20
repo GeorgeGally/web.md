@@ -1,43 +1,56 @@
 const enabledToggle = document.getElementById('always-on-toggle');
 const enabledControl = document.getElementById('enabled-control');
+const extrasEl = document.getElementById('webmd-extras');
 const statusEl = document.getElementById('webmd-status');
-const themeBtns = document.querySelectorAll('.webmd-segmented-btn');
+const themeToggle = document.getElementById('theme-toggle');
 const fontSizeSlider = document.getElementById('font-size-slider');
 const fontSizeValue = document.getElementById('font-size-value');
+
+function paintSlider() {
+  const { min, max, value } = fontSizeSlider;
+  const pct = ((value - min) / (max - min)) * 100;
+  fontSizeSlider.style.background =
+    `linear-gradient(to right, var(--accent) ${pct}%, var(--rail) ${pct}%)`;
+}
 
 function setStatus(text, isError) {
   statusEl.textContent = text;
   statusEl.className = 'webmd-status' + (isError ? ' error' : '');
 }
 
+function updateExtras(enabled) {
+  extrasEl.classList.toggle('is-hidden', !enabled);
+}
+
+function applyPopupTheme(isDark) {
+  document.body.classList.toggle('dark', isDark);
+}
+
 async function init() {
   const result = await chrome.storage.local.get(['alwaysOn', 'theme', 'fontSize']);
   enabledToggle.checked = result.alwaysOn === true;
-  setStatus(enabledToggle.checked ? 'Active' : '', false);
+  updateExtras(enabledToggle.checked);
 
   const theme = result.theme || 'dark';
-  themeBtns.forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.theme === theme);
-  });
+  themeToggle.checked = theme === 'dark';
+  applyPopupTheme(themeToggle.checked);
 
   const size = result.fontSize || 17;
   fontSizeSlider.value = size;
   fontSizeValue.textContent = size;
+  paintSlider();
 }
 
 async function handleEnabled(enabled) {
   await chrome.storage.local.set({ alwaysOn: enabled });
-  setStatus(enabled ? 'Enabling\u2026' : 'Disabling\u2026', false);
-  notifyTab(enabled ? 'ALWAYS_ON' : 'ALWAYS_OFF').then(() => {
-    setStatus(enabled ? 'Active' : '', false);
-  });
+  updateExtras(enabled);
+  notifyTab(enabled ? 'ALWAYS_ON' : 'ALWAYS_OFF');
 }
 
-async function handleTheme(theme) {
+async function handleTheme(isDark) {
+  const theme = isDark ? 'dark' : 'light';
+  applyPopupTheme(isDark);
   await chrome.storage.local.set({ theme });
-  themeBtns.forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.theme === theme);
-  });
   notifyTab('RERENDER');
 }
 
@@ -45,6 +58,7 @@ async function handleFontSize(size) {
   const val = parseInt(size, 10);
   await chrome.storage.local.set({ fontSize: val });
   fontSizeValue.textContent = val;
+  paintSlider();
   notifyTab('RERENDER');
 }
 
@@ -95,10 +109,8 @@ enabledControl.addEventListener('click', (e) => {
   handleEnabled(enabledToggle.checked);
 });
 
-themeBtns.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    handleTheme(btn.dataset.theme);
-  });
+themeToggle.addEventListener('change', () => {
+  handleTheme(themeToggle.checked);
 });
 
 fontSizeSlider.addEventListener('input', () => {
