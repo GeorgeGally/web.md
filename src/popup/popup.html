@@ -9,7 +9,7 @@
 <body>
   <div class="webmd-popup">
     <header class="webmd-header">
-      <h1 class="webmd-title">web<span class="webmd-ext">.md</span></h1>
+      <h1 class="webmd-title">web<span class="webmd-dot">.</span><span class="webmd-ext">md</span></h1>
     </header>
 
     <div class="webmd-control" id="enabled-control">
@@ -22,6 +22,15 @@
     </div>
 
     <div class="webmd-extras" id="webmd-extras">
+      <div class="webmd-control">
+        <span class="webmd-label">Formatted</span>
+        <label class="webmd-toggle">
+          <input type="checkbox" id="formatted-toggle">
+          <span class="webmd-toggle-track"></span>
+          <span class="webmd-toggle-knob"></span>
+        </label>
+      </div>
+
       <div class="webmd-control">
         <span class="webmd-label">Dark Mode</span>
         <label class="webmd-toggle">

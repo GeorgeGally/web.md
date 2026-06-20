@@ -271,7 +271,7 @@
 
     .principle-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
     }
 
     .principle {
@@ -433,7 +433,7 @@
 
       .hero {
         min-height: 0;
-        padding: 72px 0 54px;
+        padding: 88px 0 124px;
         gap: 42px;
       }
 
@@ -511,35 +511,33 @@
 
     <main id="top">
       <section class="wrap hero" aria-labelledby="hero-title">
-        <div>
+        <article>
           <p class="eyebrow">Chrome extension / semantic reading</p>
           <h1 id="hero-title">Read the web as markdown.</h1>
           <p class="hero-copy">web.md removes ads and visual clutter, then renders pages as honest semantic text: headings, paragraphs, lists, links, quotes, and code.</p>
-          <div class="actions" aria-label="Primary actions">
+          <p class="actions" aria-label="Primary actions">
             <a class="button button-primary" href="https://github.com/GeorgeGally/web.md">Get the extension</a>
             <a class="button button-secondary" href="#features">See what it does</a>
-          </div>
-        </div>
+          </p>
+        </article>
       </section>
 
       <section class="principles" id="principles" aria-label="Design principles">
         <div class="wrap principle-grid">
           <article class="principle">
-            <span class="number">01</span>
-            <h2>Useful before decorative.</h2>
-          </article>
-          <article class="principle">
-            <span class="number">02</span>
+            <span class="number" aria-hidden="true">01</span>
             <h2>Less, but better.</h2>
           </article>
           <article class="principle">
-            <span class="number">03</span>
-            <h2>Honest about what the page contains.</h2>
+            <span class="number" aria-hidden="true">02</span>
+            
+            <h2>No ads. No gifs. No sh*t.</h2>
           </article>
           <article class="principle">
-            <span class="number">04</span>
-            <h2>Quiet enough for long reading.</h2>
+            <span class="number" aria-hidden="true">03</span>
+            <h2>Honest about what the page contains.</h2>
           </article>
+       
         </div>
       </section>
 

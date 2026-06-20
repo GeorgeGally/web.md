@@ -56,9 +56,10 @@ export function renderThinContent(url, title, { theme = 'dark', fontSize = 17 } 
   document.documentElement.innerHTML = html;
 }
 
-export function renderMarkdownPage(markdown, originalTitle, { theme = 'dark', fontSize = 17 } = {}) {
+export function renderMarkdownPage(markdown, originalTitle, { formatted = false, theme = 'dark', fontSize = 17 } = {}) {
   applyDocumentPrefs(theme, fontSize);
-  const htmlBody = marked.parse(markdown);
+  const htmlBody = formatted ? marked.parse(markdown) : renderBareMarkdown(markdown);
+  const contentClass = formatted ? 'webmd-content' : 'webmd-content webmd-content-bare';
 
   const html = `<head>
   <meta charset="UTF-8">
@@ -67,12 +68,43 @@ export function renderMarkdownPage(markdown, originalTitle, { theme = 'dark', fo
   <style>${WEBMD_CSS}</style>
 </head>
 <body class="webmd-body">
-  <div class="webmd-content">
+  <div class="${contentClass}">
     ${htmlBody}
   </div>
 </body>`;
 
   document.documentElement.innerHTML = html;
+}
+
+function renderBareMarkdown(markdown) {
+  const html = esc(markdown || '')
+    .split('\n')
+    .map(highlightMarkdownLine)
+    .join('\n');
+
+  return `<pre class="webmd-bare" aria-label="Raw markdown">${html}</pre>`;
+}
+
+function highlightMarkdownLine(line) {
+  let highlighted = highlightInlineMarkdown(line);
+
+  highlighted = highlighted.replace(/^(\s*)(#{1,6})(\s+)(.*)$/, (_match, indent, marks, space, text) =>
+    `${indent}<span class="webmd-md-token">${marks}</span>${space}<span class="webmd-md-heading">${text}</span>`
+  );
+  highlighted = highlighted.replace(/^(\s*)(&gt;)(\s?)/, '$1<span class="webmd-md-token">$2</span>$3');
+  highlighted = highlighted.replace(/^(\s*)([-*+]|\d+\.)(\s+)/, '$1<span class="webmd-md-token">$2</span>$3');
+  highlighted = highlighted.replace(/^(\s*)(`{3,}.*)$/, '$1<span class="webmd-md-token">$2</span>');
+  highlighted = highlighted.replace(/^(\s*)(-{3,}|\*{3,}|_{3,})(\s*)$/, '$1<span class="webmd-md-token">$2</span>$3');
+
+  return highlighted;
+}
+
+function highlightInlineMarkdown(line) {
+  return line
+    .replace(/(`+)([^`]+)(`+)/g, '<span class="webmd-md-token">$1</span><span class="webmd-md-code">$2</span><span class="webmd-md-token">$3</span>')
+    .replace(/(\*\*|__)(.+?)(\1)/g, '<span class="webmd-md-token">$1</span><span class="webmd-md-strong">$2</span><span class="webmd-md-token">$3</span>')
+    .replace(/(\*|_)([^*_\n]+?)(\1)/g, '<span class="webmd-md-token">$1</span><span class="webmd-md-em">$2</span><span class="webmd-md-token">$3</span>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="webmd-md-token">[</span><span class="webmd-md-link-text">$1</span><span class="webmd-md-token">](</span><span class="webmd-md-link-url">$2</span><span class="webmd-md-token">)</span>');
 }
 
 function applyDocumentPrefs(theme, fontSize) {

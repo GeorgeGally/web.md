@@ -62,7 +62,7 @@
 }
 
 .webmd-body {
-  font-family: 'SF Mono', 'Menlo', 'Consolas', 'Courier New', monospace;
+  font-family: 'Menlo', 'SF Mono', 'Consolas', 'Courier New', monospace;
   font-size: var(--font-size);
   max-width: none;
   margin: 0;
@@ -77,6 +77,48 @@
 .webmd-content {
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+.webmd-content-bare {
+  word-wrap: normal;
+  overflow-wrap: normal;
+}
+
+.webmd-bare {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.7;
+  tab-size: 2;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.webmd-md-token {
+  color: var(--thin-text);
+}
+
+.webmd-md-heading,
+.webmd-md-link-text {
+  color: var(--link);
+  font-weight: 700;
+}
+
+.webmd-md-code,
+.webmd-md-link-url {
+  color: var(--code-text);
+}
+
+.webmd-md-strong {
+  color: var(--strong);
+  font-weight: 700;
+}
+
+.webmd-md-em {
+  color: var(--em);
+  font-style: italic;
 }
 
 .webmd-content h1,

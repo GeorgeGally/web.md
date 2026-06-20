@@ -10,14 +10,15 @@ let disabling = false;
 
 async function getPrefs() {
   try {
-    const result = await chrome.storage.local.get(['alwaysOn', 'theme', 'fontSize']);
+    const result = await chrome.storage.local.get(['alwaysOn', 'formatted', 'theme', 'fontSize']);
     return {
       alwaysOn: result.alwaysOn === true,
+      formatted: result.formatted === true,
       theme: result.theme || 'dark',
       fontSize: result.fontSize || 17,
     };
   } catch (e) {
-    return { alwaysOn: false, theme: 'dark', fontSize: 17 };
+    return { alwaysOn: false, formatted: false, theme: 'dark', fontSize: 17 };
   }
 }
 
@@ -52,6 +53,111 @@ function extractMetadataMarkdown(doc) {
   if (description && !title.includes(description)) parts.push(description);
 
   return parts.join('\n\n');
+}
+
+function extractStructuredLandingPage(doc) {
+  const hero = doc.querySelector('.hero');
+  const principles = doc.querySelector('.principles');
+  const features = doc.querySelector('.features');
+  if (!hero || !principles || !features) return null;
+
+  const parts = [];
+  appendText(parts, hero.querySelector('.eyebrow')?.textContent);
+  appendHeading(parts, 1, hero.querySelector('h1')?.textContent);
+  appendText(parts, hero.querySelector('.hero-copy')?.textContent);
+  appendLinks(parts, hero.querySelectorAll('.actions a'));
+
+  for (const principle of principles.querySelectorAll('.principle')) {
+    appendHeading(parts, 2, principle.querySelector('h2')?.textContent);
+  }
+
+  const featureSection = features.closest('section');
+  appendText(parts, featureSection?.querySelector('.section-label')?.textContent);
+  appendHeading(parts, 2, featureSection?.querySelector('.section-heading h2')?.textContent);
+
+  for (const feature of features.querySelectorAll('.feature')) {
+    appendHeading(parts, 3, feature.querySelector('h3')?.textContent);
+    appendText(parts, feature.querySelector('p')?.textContent);
+  }
+
+  const finalSection = doc.querySelector('.final');
+  appendHeading(parts, 2, finalSection?.querySelector('h2')?.textContent);
+  appendText(parts, finalSection?.querySelector('p')?.textContent);
+  appendLinks(parts, finalSection?.querySelectorAll('.actions a'));
+
+  const markdown = parts.filter(Boolean).join('\n\n');
+  if (!markdown) return null;
+
+  return {
+    title: hero.querySelector('h1')?.textContent?.trim() || doc.title || '',
+    markdown,
+  };
+}
+
+function appendText(parts, text) {
+  const value = text?.trim();
+  if (value) parts.push(value);
+}
+
+function appendHeading(parts, level, text) {
+  const value = text?.trim();
+  if (value) parts.push(`${'#'.repeat(level)} ${value}`);
+}
+
+function appendLinks(parts, links) {
+  const markdown = Array.from(links || [])
+    .map((link) => {
+      const text = link.textContent?.trim() || '';
+      const href = link.getAttribute('href') || '';
+      return text && href ? `[${text}](${href})` : '';
+    })
+    .filter(Boolean)
+    .join(' ');
+  if (markdown) parts.push(markdown);
+}
+
+function includesText(markdown, text) {
+  const normalize = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const normalizedText = normalize(text);
+  return normalizedText.length > 0 && normalize(markdown).includes(normalizedText);
+}
+
+function restoreMissingPrimaryHeading(markdown, doc, fallbackTitle) {
+  const headingEl = doc.querySelector('main h1, h1');
+  const heading = headingEl?.textContent?.trim() || fallbackTitle?.trim() || '';
+  if (!heading || includesText(markdown, heading)) return markdown;
+
+  const headingMarkdown = `# ${heading}`;
+  const previousText = headingEl?.previousElementSibling?.textContent?.trim() || '';
+  if (!previousText) return `${headingMarkdown}\n\n${markdown}`.trim();
+
+  const blocks = markdown.split(/\n{2,}/);
+  const previousIndex = blocks.findIndex((block) => includesText(block, previousText));
+  if (previousIndex === -1) return `${headingMarkdown}\n\n${markdown}`.trim();
+
+  blocks.splice(previousIndex + 1, 0, headingMarkdown);
+  return blocks.join('\n\n').trim();
+}
+
+function restoreMissingHeroLinks(markdown, doc) {
+  const links = Array.from(doc.querySelectorAll('.hero .actions a'))
+    .map((link) => {
+      const text = link.textContent?.trim() || '';
+      const href = link.getAttribute('href') || '';
+      if (!text || !href || includesText(markdown, text)) return '';
+      return `[${text}](${href})`;
+    })
+    .filter(Boolean);
+
+  if (links.length === 0) return markdown;
+
+  const heroCopy = doc.querySelector('.hero-copy')?.textContent?.trim() || '';
+  const blocks = markdown.split(/\n{2,}/);
+  const heroCopyIndex = blocks.findIndex((block) => includesText(block, heroCopy));
+  if (heroCopyIndex === -1) return `${markdown}\n\n${links.join(' ')}`.trim();
+
+  blocks.splice(heroCopyIndex + 1, 0, links.join(' '));
+  return blocks.join('\n\n').trim();
 }
 
 function isRedditThreadUrl(url) {
@@ -460,6 +566,17 @@ async function transformPage() {
   const isRedditThread = isRedditThreadUrl(originalUrl);
 
   try {
+    const structuredLanding = extractStructuredLandingPage(document);
+    if (structuredLanding?.markdown) {
+      lastMarkdown = structuredLanding.markdown;
+      lastTitle = structuredLanding.title || originalTitle;
+      renderLoadingState();
+      renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+      return;
+    }
+  } catch (e) {}
+
+  try {
     const redditThread = extractRedditThreadFromDOM(document);
     if (redditThread?.markdown) {
       lastMarkdown = redditThread.markdown;
@@ -482,6 +599,8 @@ async function transformPage() {
     try {
       const turndownService = applyPuristPass();
       lastMarkdown = turndownService.turndown(extracted.content) || '';
+      lastMarkdown = restoreMissingPrimaryHeading(lastMarkdown, document, extracted.title);
+      lastMarkdown = restoreMissingHeroLinks(lastMarkdown, document);
     } catch (e) {}
 
     if (!lastMarkdown || lastMarkdown.trim().length === 0) {

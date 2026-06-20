@@ -12,18 +12,23 @@
   --accent: #ff5a00;      /* Braun signal orange — functional accent only */
 }
 
+:root.dark,
 body.dark {
   --ink: #f2f2f2;
   --ink-soft: #b0b0b0;
   --ink-faint: #6e6e6e;
   --line: #2a2a2a;
   --rail: #3a3a3a;
-  --paper: #161616;
+  --paper: #111111;
+}
+
+html,
+body {
+  background: var(--paper);
 }
 
 body {
   font-family: 'IBM Plex Mono', 'SF Mono', 'Menlo', monospace;
-  background: var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -31,14 +36,14 @@ body {
 }
 
 .webmd-popup {
-  width: 320px;
-  padding: 48px 28px 48px;
+  width: 400px;
+  padding: 64px 48px 64px 48px;
 }
 
 /* Header — wordmark only */
 
 .webmd-header {
-  margin-bottom: 12px;
+  margin-bottom: 56px;
 }
 
 .webmd-title {
@@ -51,6 +56,10 @@ body {
 
 .webmd-ext {
   color: var(--ink-faint);
+}
+
+.webmd-dot {
+  color: var(--accent);
 }
 
 /* Status — error feedback only, otherwise empty */
