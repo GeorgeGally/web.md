@@ -4,13 +4,19 @@ import { applyPuristPass } from './extraction/purist-pass.js';
 import { renderMarkdownPage, renderLoadingState, renderThinContent } from './rendering/markdown-renderer.js';
 
 let transformed = false;
+let lastMarkdown = '';
+let lastTitle = '';
 
-async function shouldAutoRun() {
+async function getPrefs() {
   try {
-    const result = await chrome.storage.local.get('alwaysOn');
-    return result.alwaysOn === true;
+    const result = await chrome.storage.local.get(['alwaysOn', 'theme', 'fontSize']);
+    return {
+      alwaysOn: result.alwaysOn === true,
+      theme: result.theme || 'dark',
+      fontSize: result.fontSize || 17,
+    };
   } catch (e) {
-    return false;
+    return { alwaysOn: false, theme: 'dark', fontSize: 17 };
   }
 }
 
@@ -33,6 +39,7 @@ async function transformPage() {
   if (transformed) return;
   transformed = true;
 
+  const prefs = await getPrefs();
   const originalTitle = document.title || '';
   const originalUrl = window.location.href;
 
@@ -54,8 +61,8 @@ async function transformPage() {
 
   renderLoadingState();
 
-  let markdown = '';
-  let title = originalTitle;
+  lastMarkdown = '';
+  lastTitle = originalTitle;
 
   if (clone) {
     let extracted;
@@ -64,29 +71,36 @@ async function transformPage() {
     } catch (e) {}
 
     if (extracted && extracted.content) {
-      title = extracted.title || originalTitle;
+      lastTitle = extracted.title || originalTitle;
       try {
         const turndownService = applyPuristPass();
-        markdown = turndownService.turndown(extracted.content) || '';
+        lastMarkdown = turndownService.turndown(extracted.content) || '';
       } catch (e) {}
 
-      if (!markdown || markdown.trim().length === 0) {
-        markdown = '';
+      if (!lastMarkdown || lastMarkdown.trim().length === 0) {
+        lastMarkdown = '';
       }
     }
   }
 
-  if (!markdown) {
+  if (!lastMarkdown) {
     if (rawText.length > 20) {
       const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
-      renderMarkdownPage(lines, originalTitle);
+      renderMarkdownPage(lines, originalTitle, prefs);
       return;
     }
-    renderThinContent(originalUrl, originalTitle);
+    renderThinContent(originalUrl, originalTitle, prefs);
     return;
   }
 
-  renderMarkdownPage(markdown, title);
+  renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+}
+
+function reRender() {
+  if (!transformed || !lastMarkdown) return;
+  getPrefs().then((prefs) => {
+    renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+  });
 }
 
 function disable() {
@@ -105,6 +119,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       transformed = false;
       transformPage();
       sendResponse({ ok: true });
+    } else if (message.type === 'RERENDER') {
+      reRender();
+      sendResponse({ ok: true });
     }
   } catch (e) {
     sendResponse({ ok: false });
@@ -113,7 +130,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && 'alwaysOn' in changes) {
+  if (area !== 'local') return;
+  if ('alwaysOn' in changes) {
     if (changes.alwaysOn.newValue === true) {
       transformed = false;
       transformPage();
@@ -121,12 +139,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
       disable();
     }
   }
+  if ('theme' in changes || 'fontSize' in changes) {
+    reRender();
+  }
 });
 
 window.addEventListener('pageshow', (event) => {
   if (event.persisted) {
-    shouldAutoRun().then((autoRun) => {
-      if (autoRun) {
+    getPrefs().then((prefs) => {
+      if (prefs.alwaysOn) {
         transformed = false;
         transformPage();
       }
@@ -135,8 +156,8 @@ window.addEventListener('pageshow', (event) => {
 });
 
 async function main() {
-  const autoRun = await shouldAutoRun();
-  if (autoRun) {
+  const prefs = await getPrefs();
+  if (prefs.alwaysOn) {
     transformPage();
   }
 }

@@ -38,19 +38,19 @@ export function renderLoadingState() {
   document.documentElement.innerHTML = html;
 }
 
-export function renderThinContent(url, title) {
+export function renderThinContent(url, title, { theme = 'dark', fontSize = 17 } = {}) {
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="${theme}" style="--font-size: ${fontSize}px">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(title)} — web/md</title>
+  <title>${esc(title)} — web/md</title>
   <style>${WEBMD_CSS}</style>
 </head>
 <body class="webmd-body">
   <div class="webmd-content">
     <p class="webmd-thin">No extractable content on this page.</p>
-    <p class="webmd-url">${escapeHtml(url)}</p>
+    <p class="webmd-url">${esc(url)}</p>
   </div>
 </body>
 </html>`;
@@ -58,15 +58,15 @@ export function renderThinContent(url, title) {
   document.documentElement.innerHTML = html;
 }
 
-export function renderMarkdownPage(markdown, originalTitle) {
+export function renderMarkdownPage(markdown, originalTitle, { theme = 'dark', fontSize = 17 } = {}) {
   const htmlBody = marked.parse(markdown);
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="${theme}" style="--font-size: ${fontSize}px">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(originalTitle)} — web/md</title>
+  <title>${esc(originalTitle)} — web/md</title>
   <style>${WEBMD_CSS}</style>
 </head>
 <body class="webmd-body">
@@ -79,10 +79,6 @@ export function renderMarkdownPage(markdown, originalTitle) {
   document.documentElement.innerHTML = html;
 }
 
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function esc(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

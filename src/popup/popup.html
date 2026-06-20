@@ -10,11 +10,28 @@
   <div class="webmd-popup">
     <h1 class="webmd-title">web/md</h1>
     <div id="webmd-status" class="webmd-status"></div>
-    <div class="webmd-toggle-row" id="toggle-row">
-      <label class="webmd-toggle-label">Enabled</label>
+
+    <div class="webmd-row" id="enabled-row">
+      <span class="webmd-row-label">Enabled</span>
       <div class="webmd-toggle-switch">
         <input type="checkbox" id="always-on-toggle">
         <span class="webmd-toggle-slider"></span>
+      </div>
+    </div>
+
+    <div class="webmd-row">
+      <span class="webmd-row-label">Theme</span>
+      <div class="webmd-theme-btns">
+        <button class="webmd-theme-btn" data-theme="dark">Dark</button>
+        <button class="webmd-theme-btn" data-theme="light">Light</button>
+      </div>
+    </div>
+
+    <div class="webmd-row webmd-row-slider">
+      <span class="webmd-row-label">Size</span>
+      <div class="webmd-size-wrap">
+        <input type="range" id="font-size-slider" min="12" max="28" value="17" step="1">
+        <span id="font-size-value" class="webmd-size-value">17</span>
       </div>
     </div>
   </div>
