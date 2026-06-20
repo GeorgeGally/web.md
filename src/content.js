@@ -14,69 +14,86 @@ async function shouldAutoRun() {
   }
 }
 
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+function extractRawText(doc) {
+  const body = doc.body || doc.documentElement;
+  if (!body) return '';
+  return (body.innerText || body.textContent || '').trim();
+}
+
 async function transformPage() {
   if (transformed) return;
   transformed = true;
 
-  const originalTitle = document.title;
+  const originalTitle = document.title || '';
   const originalUrl = window.location.href;
 
   try {
-    renderLoadingState();
-  } catch (e) {}
+    await withTimeout(
+      waitForDOMSettled(document, {
+        timeout: 8000,
+        stabilityThreshold: 500,
+      }),
+      10000,
+      'DOM settle'
+    );
+  } catch (e) {
+    console.warn('web/md: settle timeout, proceeding with current DOM');
+  }
 
+  renderLoadingState();
+
+  const rawNow = extractRawText(document);
+
+  let clone;
   try {
-    await waitForDOMSettled(document, {
-      timeout: 8000,
-      stabilityThreshold: 500,
-    });
+    clone = document.cloneNode(true);
+  } catch (e) {
+    console.warn('web/md: clone failed', e);
+  }
 
-    const clone = document.cloneNode(true);
+  let markdown = '';
+  let title = originalTitle;
 
+  if (clone) {
     let extracted;
     try {
       extracted = extractContent(clone);
     } catch (e) {
-      console.warn('web/md: extraction failed, trying raw fallback', e);
+      console.warn('web/md: extraction failed', e);
     }
 
-    if (!extracted || !extracted.content) {
-      const rawText = document.body?.innerText?.trim() || '';
-      if (rawText.length > 20) {
-        const title = document.title || '';
-        const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
-        renderMarkdownPage(lines, title);
-        return;
+    if (extracted && extracted.content) {
+      title = extracted.title || originalTitle;
+      try {
+        const turndownService = applyPuristPass();
+        markdown = turndownService.turndown(extracted.content) || '';
+      } catch (e) {
+        console.warn('web/md: turndown failed', e);
       }
-      renderThinContent(originalUrl, originalTitle);
-      return;
-    }
-
-    const turndownService = applyPuristPass();
-    const markdown = turndownService.turndown(extracted.content);
-
-    if (!markdown || markdown.trim().length === 0) {
-      const rawText = document.body?.innerText?.trim() || '';
-      if (rawText.length > 20) {
-        const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
-        renderMarkdownPage(lines, document.title || '');
-        return;
-      }
-      renderThinContent(originalUrl, originalTitle);
-      return;
-    }
-
-    renderMarkdownPage(markdown, extracted.title || originalTitle);
-  } catch (e) {
-    console.error('web/md: transform error', e);
-    const rawText = document.body?.innerText?.trim() || '';
-    if (rawText.length > 20) {
-      const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
-      renderMarkdownPage(lines, document.title || originalTitle);
-    } else {
-      renderThinContent(originalUrl, originalTitle);
     }
   }
+
+  if (!markdown || markdown.trim().length === 0) {
+    if (rawNow.length > 20) {
+      title = document.title || originalTitle;
+      const lines = rawNow.split('\n').filter(l => l.trim()).join('\n\n');
+      renderMarkdownPage(lines, title);
+      return;
+    }
+    renderThinContent(originalUrl, originalTitle);
+    return;
+  }
+
+  renderMarkdownPage(markdown, title);
 }
 
 function disable() {
