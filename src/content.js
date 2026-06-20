@@ -74,17 +74,35 @@ function isYouTubeWatchUrl(url) {
   }
 }
 
+async function prepareYouTubePage(url) {
+  if (!isYouTubeWatchUrl(url)) return;
+
+  try {
+    document.querySelector('#description-inline-expander, ytd-text-inline-expander')?.click();
+    document.querySelector('#expand, tp-yt-paper-button#expand')?.click();
+  } catch (e) {}
+
+  try {
+    window.scrollTo({ top: Math.max(document.documentElement.scrollHeight * 0.65, 1200), behavior: 'instant' });
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  } catch (e) {}
+}
+
 function extractYouTubeVideo(doc, url) {
   if (!isYouTubeWatchUrl(url)) return null;
 
   const playerResponse = parseYouTubePlayerResponse(doc);
+  const structuredVideo = parseYouTubeStructuredVideo(doc);
   const details = playerResponse?.videoDetails || {};
   const title = details.title
+    || structuredVideo?.name
     || doc.querySelector('meta[property="og:title"]')?.content
     || doc.querySelector('h1 yt-formatted-string, h1')?.textContent?.trim()
     || doc.title?.replace(/ - YouTube$/, '')
     || '';
   const author = details.author
+    || structuredVideo?.author?.name
     || doc.querySelector('ytd-video-owner-renderer #channel-name a')?.textContent?.trim()
     || doc.querySelector('#owner #channel-name a')?.textContent?.trim()
     || '';
@@ -92,14 +110,17 @@ function extractYouTubeVideo(doc, url) {
     || doc.querySelector('link[itemprop="url"]')?.href
     || '';
   const description = details.shortDescription
+    || structuredVideo?.description
     || collectText(doc.querySelector('ytd-watch-metadata #description-inline-expander'))
     || collectText(doc.querySelector('#description'))
     || doc.querySelector('meta[name="description"]')?.content
     || '';
   const views = doc.querySelector('meta[itemprop="interactionCount"]')?.content
+    || structuredVideo?.interactionStatistic?.userInteractionCount
     || doc.querySelector('.view-count')?.textContent?.trim()
     || '';
   const published = doc.querySelector('meta[itemprop="datePublished"]')?.content
+    || structuredVideo?.uploadDate
     || doc.querySelector('#info-strings yt-formatted-string')?.textContent?.trim()
     || '';
 
@@ -110,7 +131,7 @@ function extractYouTubeVideo(doc, url) {
 
   const meta = [];
   if (author) meta.push(channelUrl ? `[${author}](${channelUrl})` : author);
-  if (views) meta.push(`${Number(views).toLocaleString()} views`);
+  if (views) meta.push(formatYouTubeViews(views));
   if (published) meta.push(published);
   if (meta.length > 0) parts.push(meta.join(' · '));
 
@@ -128,18 +149,45 @@ function extractYouTubeVideo(doc, url) {
   };
 }
 
+function formatYouTubeViews(views) {
+  const raw = String(views).trim();
+  const numeric = raw.replace(/[^0-9]/g, '');
+  if (!numeric) return raw;
+  return `${Number(numeric).toLocaleString()} views`;
+}
+
 function parseYouTubePlayerResponse(doc) {
+  const markers = [
+    'var ytInitialPlayerResponse =',
+    'ytInitialPlayerResponse =',
+    'window["ytInitialPlayerResponse"] =',
+    'window.ytInitialPlayerResponse =',
+  ];
+
   for (const script of doc.scripts) {
     const text = script.textContent || '';
-    const marker = 'var ytInitialPlayerResponse = ';
-    const start = text.indexOf(marker);
-    if (start === -1) continue;
+    for (const marker of markers) {
+      const start = text.indexOf(marker);
+      if (start === -1) continue;
 
-    const raw = extractJsonObject(text, start + marker.length);
-    if (!raw) continue;
+      const raw = extractJsonObject(text, start + marker.length);
+      if (!raw) continue;
 
+      try {
+        return JSON.parse(raw);
+      } catch (e) {}
+    }
+  }
+  return null;
+}
+
+function parseYouTubeStructuredVideo(doc) {
+  for (const script of doc.querySelectorAll('script[type="application/ld+json"]')) {
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(script.textContent || '{}');
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      const video = items.find((item) => item?.['@type'] === 'VideoObject');
+      if (video) return video;
     } catch (e) {}
   }
   return null;
@@ -376,6 +424,10 @@ async function transformPage() {
       }),
       10000
     );
+  } catch (e) {}
+
+  try {
+    await prepareYouTubePage(originalUrl);
   } catch (e) {}
 
   const rawText = extractRawText(document);
