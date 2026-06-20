@@ -66,7 +66,7 @@
   font-size: var(--font-size);
   max-width: none;
   margin: 0;
-  padding: 2rem 10rem 4rem;
+  padding: 4rem;
   line-height: 1.65;
   color: var(--text);
   background: var(--bg);
@@ -192,12 +192,10 @@
 }
 
 .webmd-content pre {
-  background: var(--pre-bg);
-  padding: 1em 1.2em;
-  border-radius: 4px;
+  padding: 2em 4em;
   overflow-x: auto;
   margin-bottom: 1.1em;
-  border: 1px solid var(--pre-border);
+
 }
 
 .webmd-content pre code {

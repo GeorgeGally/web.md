@@ -66,9 +66,9 @@
     }
 
     .nav {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: space-between;
       height: 72px;
     }
 
@@ -88,13 +88,10 @@
       display: block;
     }
 
-    .brand-muted {
-      color: var(--muted);
-    }
-
     .nav-links {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 28px;
       color: var(--muted);
       font-size: 14px;
@@ -114,6 +111,58 @@
     .text-link:hover {
       color: var(--ink);
       background-size: 100% 2px;
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .toggle-group-label {
+      letter-spacing: 0.04em;
+      transition: color 160ms ease;
+    }
+
+    .toggle-group-label.active {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 52px;
+      height: 30px;
+      background: var(--faint);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 200ms ease;
+      border: none;
+      padding: 0;
+    }
+
+    .toggle-switch[aria-checked="true"] {
+      background: var(--signal);
+    }
+
+    .toggle-switch::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 200ms ease;
+    }
+
+    .toggle-switch[aria-checked="true"]::after {
+      transform: translateX(22px);
     }
 
     .hero {
@@ -196,71 +245,6 @@
 
     .button-secondary:hover {
       background: var(--surface);
-    }
-
-    .specimen {
-      align-self: center;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      padding: 26px;
-      animation: rise 560ms ease both;
-    }
-
-    .popup-card {
-      max-width: 360px;
-      margin-left: auto;
-      background: #ededed;
-      border: 1px solid var(--ink);
-      padding: 44px 34px;
-    }
-
-    .popup-title {
-      margin: 0 0 28px;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 24px;
-      font-weight: 600;
-      letter-spacing: -0.05em;
-    }
-
-    .popup-title span {
-      color: var(--faint);
-    }
-
-    .control {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      min-height: 62px;
-      color: var(--muted);
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .toggle {
-      position: relative;
-      width: 48px;
-      height: 28px;
-      background: var(--signal);
-      border-radius: 999px;
-    }
-
-    .toggle::after {
-      content: "";
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 20px;
-      height: 20px;
-      background: white;
-      border-radius: 50%;
-    }
-
-    .rail {
-      width: 130px;
-      height: 28px;
-      background: linear-gradient(to right, var(--signal) 56%, #d0d0d0 56%);
-      border-radius: 999px;
     }
 
     .principles {
@@ -401,6 +385,22 @@
       font-size: 12px;
     }
 
+    .md-view {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 72px 20px 120px;
+    }
+
+    .md-content {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 0;
+    }
+
     @keyframes rise {
       from {
         opacity: 0;
@@ -425,6 +425,10 @@
         display: none;
       }
 
+      .toggle-group-label[id^="see-"] {
+        display: none;
+      }
+
       .hero,
       .section-heading,
       .final-grid {
@@ -435,11 +439,6 @@
         min-height: 0;
         padding: 88px 0 124px;
         gap: 42px;
-      }
-
-      .popup-card {
-        max-width: none;
-        margin: 0;
       }
 
       .principle-grid,
@@ -469,6 +468,10 @@
       .section-heading {
         margin-bottom: 42px;
       }
+
+      .md-view {
+        padding: 48px 20px 80px;
+      }
     }
 
     @media (max-width: 520px) {
@@ -488,21 +491,22 @@
       .button {
         width: 100%;
       }
-
-      .specimen,
-      .popup-card {
-        padding: 22px;
-      }
     }
   </style>
 </head>
 <body>
-  <div class="page">
+  <div class="page" id="page-rendered">
     <header class="site-header">
       <nav class="wrap nav" aria-label="Primary navigation">
         <a class="brand" href="#top" aria-label="web.md home">
           <img class="brand-mark" src="icons/md.png" alt="" width="32" height="32" aria-hidden="true">
         </a>
+        <div class="toggle-group">
+          <span class="toggle-group-label" id="see-label">See it in action</span>
+          <span class="toggle-group-label active" id="label-rendered">Rendered</span>
+          <button class="toggle-switch" role="switch" aria-checked="false" aria-label="Toggle markdown view" id="md-toggle"></button>
+          <span class="toggle-group-label" id="label-markdown">Markdown</span>
+        </div>
         <div class="nav-links">
           <a href="#install">Install</a>
         </div>
@@ -530,14 +534,12 @@
           </article>
           <article class="principle">
             <span class="number" aria-hidden="true">02</span>
-            
             <h2>No ads. No gifs. No sh*t.</h2>
           </article>
           <article class="principle">
             <span class="number" aria-hidden="true">03</span>
             <h2>Honest about what the page contains.</h2>
           </article>
-       
         </div>
       </section>
 
@@ -581,5 +583,126 @@
       <div class="wrap">web.md / semantic pages, no decoration pretending to be content</div>
     </footer>
   </div>
+
+  <div id="page-markdown" hidden>
+    <header class="site-header">
+      <nav class="wrap nav" aria-label="Primary navigation">
+        <a class="brand" href="#top" aria-label="web.md home">
+          <img class="brand-mark" src="icons/md.png" alt="" width="32" height="32" aria-hidden="true">
+        </a>
+        <div class="toggle-group">
+          <span class="toggle-group-label" id="see-label-alt">See it in action</span>
+          <span class="toggle-group-label" id="label-rendered-alt">Rendered</span>
+          <button class="toggle-switch" role="switch" aria-checked="true" aria-label="Toggle markdown view" id="md-toggle-alt"></button>
+          <span class="toggle-group-label active" id="label-markdown-alt">Markdown</span>
+        </div>
+        <div class="nav-links">
+        </div>
+      </nav>
+    </header>
+
+    <main class="md-view">
+      <pre class="md-content"># web.md
+
+Chrome extension / semantic reading
+
+Read the web as markdown.
+
+web.md removes ads and visual clutter, then renders pages as honest semantic text: headings, paragraphs, lists, links, quotes, and code.
+
+[Get the extension](https://github.com/GeorgeGally/web.md)
+[See what it does](#features)
+
+---
+
+## 01 — Less, but better.
+
+## 02 — No ads. No gifs. No sh\*t.
+
+## 03 — Honest about what the page contains.
+
+---
+
+### What it does
+
+A cleaner layer over the pages you already visit.
+
+**Extracts meaning**
+Readability and site-specific extractors keep titles, body text, links, comments, and metadata when they matter.
+
+**Removes ads and noise**
+Ads, navigation, cookie banners, sidebars, related-content blocks, and social widgets are stripped away.
+
+**Stays with you**
+Always-on mode follows your browsing session so links open in the same markdown reading layer.
+
+---
+
+## Install locally. Browse quietly.
+
+Build the extension, load `dist/` in Chrome, and turn ad-heavy pages into quiet semantic reading views whenever you need them.
+
+[Open GitHub](https://github.com/GeorgeGally/web.md)
+[Read setup](README.md)
+
+---
+
+*web.md / semantic pages, no decoration pretending to be content*</pre>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      var rendered = document.getElementById('page-rendered');
+      var markdown = document.getElementById('page-markdown');
+      var toggle = document.getElementById('md-toggle');
+      var toggleAlt = document.getElementById('md-toggle-alt');
+      var labelRendered = document.getElementById('label-rendered');
+      var labelMarkdown = document.getElementById('label-markdown');
+      var labelRenderedAlt = document.getElementById('label-rendered-alt');
+      var labelMarkdownAlt = document.getElementById('label-markdown-alt');
+
+      function activate(state) {
+        if (state === 'md') {
+          rendered.hidden = true;
+          markdown.hidden = false;
+          toggle.setAttribute('aria-checked', 'true');
+          toggleAlt.setAttribute('aria-checked', 'true');
+          labelRendered.className = 'toggle-group-label';
+          labelMarkdown.className = 'toggle-group-label active';
+          labelRenderedAlt.className = 'toggle-group-label';
+          labelMarkdownAlt.className = 'toggle-group-label active';
+          document.body.style.background = '#fff';
+        } else {
+          rendered.hidden = false;
+          markdown.hidden = true;
+          toggle.setAttribute('aria-checked', 'false');
+          toggleAlt.setAttribute('aria-checked', 'false');
+          labelRendered.className = 'toggle-group-label active';
+          labelMarkdown.className = 'toggle-group-label';
+          labelRenderedAlt.className = 'toggle-group-label active';
+          labelMarkdownAlt.className = 'toggle-group-label';
+          document.body.style.background = '';
+        }
+      }
+
+      function handleToggle() {
+        var isMd = toggle.getAttribute('aria-checked') === 'true' || toggleAlt.getAttribute('aria-checked') === 'true';
+        activate(isMd ? 'html' : 'md');
+      }
+
+      toggle.addEventListener('click', handleToggle);
+      toggleAlt.addEventListener('click', handleToggle);
+
+      [toggle, toggleAlt].forEach(function (el) {
+        el.addEventListener('keydown', function (e) {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            handleToggle();
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
