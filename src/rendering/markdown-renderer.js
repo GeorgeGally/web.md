@@ -7,7 +7,7 @@ export function renderLoadingState() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loading web/md...</title>
+  <title>>> loading web.md</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -31,7 +31,7 @@ export function renderLoadingState() {
   </style>
 </head>
 <body>
-  <div class="webmd-loading">Loading web/md...</div>
+  <div class="webmd-loading">>>loading web.md</div>
 </body>
 </html>`;
 

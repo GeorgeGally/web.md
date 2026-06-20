@@ -14,11 +14,11 @@ async function shouldAutoRun() {
   }
 }
 
-function withTimeout(promise, ms, label) {
+function withTimeout(promise, ms) {
   return Promise.race([
     promise,
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+      setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms)
     ),
   ]);
 }
@@ -42,23 +42,17 @@ async function transformPage() {
         timeout: 8000,
         stabilityThreshold: 500,
       }),
-      10000,
-      'DOM settle'
+      10000
     );
-  } catch (e) {
-    console.warn('web/md: settle timeout, proceeding with current DOM');
-  }
+  } catch (e) {}
 
-  renderLoadingState();
-
-  const rawNow = extractRawText(document);
-
+  const rawText = extractRawText(document);
   let clone;
   try {
     clone = document.cloneNode(true);
-  } catch (e) {
-    console.warn('web/md: clone failed', e);
-  }
+  } catch (e) {}
+
+  renderLoadingState();
 
   let markdown = '';
   let title = originalTitle;
@@ -67,26 +61,25 @@ async function transformPage() {
     let extracted;
     try {
       extracted = extractContent(clone);
-    } catch (e) {
-      console.warn('web/md: extraction failed', e);
-    }
+    } catch (e) {}
 
     if (extracted && extracted.content) {
       title = extracted.title || originalTitle;
       try {
         const turndownService = applyPuristPass();
         markdown = turndownService.turndown(extracted.content) || '';
-      } catch (e) {
-        console.warn('web/md: turndown failed', e);
+      } catch (e) {}
+
+      if (!markdown || markdown.trim().length === 0) {
+        markdown = '';
       }
     }
   }
 
-  if (!markdown || markdown.trim().length === 0) {
-    if (rawNow.length > 20) {
-      title = document.title || originalTitle;
-      const lines = rawNow.split('\n').filter(l => l.trim()).join('\n\n');
-      renderMarkdownPage(lines, title);
+  if (!markdown) {
+    if (rawText.length > 20) {
+      const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
+      renderMarkdownPage(lines, originalTitle);
       return;
     }
     renderThinContent(originalUrl, originalTitle);
@@ -114,7 +107,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ ok: true });
     }
   } catch (e) {
-    sendResponse({ ok: false, error: e.message });
+    sendResponse({ ok: false });
   }
   return true;
 });
