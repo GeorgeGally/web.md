@@ -112,4 +112,42 @@ describe('applyPuristPass', () => {
     const result = turndownService.turndown(html);
     expect(result).not.toContain('Submit');
   });
+
+  it('skips empty links from image-wrapping anchors', () => {
+    const html = '<p><a href="https://x.com/photo/1"><img src="x.jpg"></a></p>';
+    const result = turndownService.turndown(html);
+    expect(result).not.toContain('[](https://x.com/photo/1)');
+    expect(result).not.toContain('[ ](https://x.com/photo/1)');
+  });
+
+  it('skips links with only whitespace content', () => {
+    const html = '<p><a href="https://x.com/test"> </a></p>';
+    const result = turndownService.turndown(html);
+    expect(result).not.toContain('[](https://x.com/test)');
+  });
+
+  it('preserves normal text links', () => {
+    const html = '<a href="https://x.com/user">@username</a>';
+    const result = turndownService.turndown(html);
+    expect(result).toContain('[@username](https://x.com/user)');
+  });
+
+  it('preserves links with title attribute', () => {
+    const html = '<a href="https://example.com" title="Example Site">click here</a>';
+    const result = turndownService.turndown(html);
+    expect(result).toContain('[click here](https://example.com "Example Site")');
+  });
+
+  it('skips links with only zero-width space content', () => {
+    const html = '<p><a href="https://x.com/photo/1">\u200B</a></p>';
+    const result = turndownService.turndown(html);
+    expect(result).not.toContain('[()');
+    expect(result).not.toContain('x.com/photo/1');
+  });
+
+  it('skips links with zero-width chars between elements', () => {
+    const html = '<p><a href="https://x.com/photo/1"><span>\u200B</span><span>\u200B</span></a></p>';
+    const result = turndownService.turndown(html);
+    expect(result).not.toContain('[()');
+  });
 });

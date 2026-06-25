@@ -1,9 +1,10 @@
 import { waitForDOMSettled } from './extraction/settle-detector.js';
 import { extractContent } from './extraction/readability-loader.js';
 import { applyPuristPass } from './extraction/purist-pass.js';
-import { renderMarkdownPage, renderLoadingState, renderThinContent } from './rendering/markdown-renderer.js';
+import { renderMarkdownPage, renderThinContent } from './rendering/markdown-renderer.js';
 
 let transformed = false;
+let transforming = false;
 let lastMarkdown = '';
 let lastTitle = '';
 let disabling = false;
@@ -29,6 +30,54 @@ function withTimeout(promise, ms) {
       setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms)
     ),
   ]);
+}
+
+function hasVisibleContent(doc) {
+  const body = doc.body || doc.documentElement;
+  if (!body) return false;
+  const text = collectText(body);
+  const clean = text.replace(/\s+/g, ' ').trim();
+  return clean.length > 200;
+}
+
+function waitForRealContent(doc, timeout) {
+  return new Promise((resolve) => {
+    if (hasVisibleContent(doc)) { resolve(); return; }
+    const interval = 400;
+    const deadline = Date.now() + timeout;
+    const timer = setInterval(() => {
+      if (hasVisibleContent(doc) || Date.now() >= deadline) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, interval);
+  });
+}
+
+function showLoadingOverlay() {
+  const style = document.createElement('style');
+  style.textContent = '@keyframes webmd-pulse{0%,100%{opacity:0.3}50%{opacity:1}}';
+  document.head.appendChild(style);
+
+  const el = document.createElement('div');
+  el.id = 'webmd-overlay';
+  el.textContent = '>>loading web.md';
+  el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:999999;background:#fafafa;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:18px;color:#999;letter-spacing:-0.3px;animation:webmd-pulse 1.5s ease-in-out infinite';
+  document.documentElement.appendChild(el);
+}
+
+const NOISE_PATTERNS = [
+  /^#+\s*(To view keyboard shortcuts, press question mark|View keyboard shortcuts).*/im,
+  /\[View keyboard shortcuts\]\(https:\/\/x\.com\/i\/keyboard_shortcuts\)/g,
+  /^#+\s*Trending now.*/im,
+  /^Trending now.*/im,
+];
+
+function removeNoise(markdown) {
+  for (const pattern of NOISE_PATTERNS) {
+    markdown = markdown.replace(pattern, '');
+  }
+  return markdown.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function extractRawText(doc) {
@@ -242,6 +291,86 @@ function extractGitHubProfile(doc) {
   return {
     title: userName || profileLogin || 'GitHub Profile',
     markdown,
+  };
+}
+
+function isXUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === 'x.com' || parsed.hostname === 'twitter.com';
+  } catch (e) {
+    return false;
+  }
+}
+
+async function prepareXPage() {
+  if (!isXUrl(window.location.href)) return;
+  for (let i = 0; i < 6; i++) {
+    window.scrollBy(0, 2000);
+    await new Promise((r) => setTimeout(r, 700));
+  }
+}
+
+function tweetTextLinks(el) {
+  const clone = el.cloneNode(true);
+  for (const a of clone.querySelectorAll('a[href]')) {
+    const text = a.textContent.trim();
+    const href = a.getAttribute('href');
+    if (text && href) {
+      const link = href.startsWith('/') ? `https://x.com${href}` : href;
+      const replacement = document.createTextNode(`[${text}](${link})`);
+      a.parentNode.replaceChild(replacement, a);
+    }
+  }
+  return collectText(clone).trim().replace(/\n+/g, ' ');
+}
+
+function extractXFeed(doc, url) {
+  if (!isXUrl(url)) return null;
+
+  let articles = Array.from(doc.querySelectorAll('article[data-testid="tweet"]'));
+  if (articles.length === 0) {
+    articles = Array.from(doc.querySelectorAll('article'));
+  }
+  if (articles.length === 0) return null;
+
+  const parts = [];
+  const seen = new Set();
+  for (const article of articles) {
+    const textEl = article.querySelector('[data-testid="tweetText"]');
+    if (!textEl) continue;
+    const text = tweetTextLinks(textEl);
+    if (text.length < 5) continue;
+
+    const key = text.slice(0, 120);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const profileLink = article.querySelector('[data-testid="User-Name"] a[href^="/"]');
+    const handle = profileLink ? profileLink.getAttribute('href').replace(/^\//, '') : '';
+    const displayNameEl = profileLink && profileLink.querySelector('span');
+    const displayName = displayNameEl ? displayNameEl.textContent.trim() : (handle ? `@${handle}` : 'unknown');
+
+    if (handle) {
+      parts.push(`### [${displayName}](https://x.com/${handle})`);
+    } else {
+      parts.push(`### ${displayName}`);
+    }
+
+    const permalinkEl = article.querySelector('a[href*="/status/"]');
+    const tweetUrl = permalinkEl && permalinkEl.getAttribute('href');
+    if (tweetUrl) {
+      const fullUrl = tweetUrl.startsWith('/') ? `https://x.com${tweetUrl}` : tweetUrl;
+      parts.push(`${text}\n\n[link](${fullUrl})`);
+    } else {
+      parts.push(text);
+    }
+  }
+
+  if (parts.length === 0) return null;
+  return {
+    title: 'Posts / X',
+    markdown: parts.join('\n\n'),
   };
 }
 
@@ -600,12 +729,22 @@ function collectText(node) {
 }
 
 async function transformPage() {
-  if (transformed) return;
+  if (transformed || transforming) return;
   transformed = true;
+  transforming = true;
+  try {
+    await doTransform();
+  } finally {
+    transforming = false;
+  }
+}
 
+async function doTransform() {
   const prefs = await getPrefs();
   const originalTitle = document.title || '';
   const originalUrl = window.location.href;
+
+  showLoadingOverlay();
 
   try {
     await withTimeout(
@@ -621,6 +760,14 @@ async function transformPage() {
     await prepareYouTubePage(originalUrl);
   } catch (e) {}
 
+  try {
+    await prepareXPage();
+  } catch (e) {}
+
+  try {
+    await withTimeout(waitForRealContent(document, 12000), 15000);
+  } catch (e) {}
+
   const rawText = extractRawText(document);
   const metadataMarkdown = extractMetadataMarkdown(document);
   lastMarkdown = '';
@@ -631,7 +778,16 @@ async function transformPage() {
     if (youtubeVideo?.markdown) {
       lastMarkdown = youtubeVideo.markdown;
       lastTitle = youtubeVideo.title || originalTitle;
-      renderLoadingState();
+      renderMarkdownPage(lastMarkdown, lastTitle, prefs);
+      return;
+    }
+  } catch (e) {}
+
+  try {
+    const xFeed = extractXFeed(document, originalUrl);
+    if (xFeed?.markdown) {
+      lastMarkdown = xFeed.markdown;
+      lastTitle = xFeed.title || originalTitle;
       renderMarkdownPage(lastMarkdown, lastTitle, prefs);
       return;
     }
@@ -642,7 +798,6 @@ async function transformPage() {
     if (githubProfile?.markdown && isGitHubProfileUrl(originalUrl)) {
       lastMarkdown = githubProfile.markdown;
       lastTitle = githubProfile.title || originalTitle;
-      renderLoadingState();
       renderMarkdownPage(lastMarkdown, lastTitle, prefs);
       return;
     }
@@ -653,7 +808,6 @@ async function transformPage() {
     if (redditThread?.markdown) {
       lastMarkdown = redditThread.markdown;
       lastTitle = redditThread.title || originalTitle;
-      renderLoadingState();
       renderMarkdownPage(lastMarkdown, lastTitle, prefs);
       return;
     }
@@ -666,7 +820,6 @@ async function transformPage() {
     if (structuredLanding?.markdown) {
       lastMarkdown = structuredLanding.markdown;
       lastTitle = structuredLanding.title || originalTitle;
-      renderLoadingState();
       renderMarkdownPage(lastMarkdown, lastTitle, prefs);
       return;
     }
@@ -677,7 +830,6 @@ async function transformPage() {
     if (redditThread?.markdown) {
       lastMarkdown = redditThread.markdown;
       lastTitle = redditThread.title || originalTitle;
-      renderLoadingState();
       renderMarkdownPage(lastMarkdown, lastTitle, prefs);
       return;
     }
@@ -688,8 +840,6 @@ async function transformPage() {
     extracted = extractContent(document);
   } catch (e) {}
 
-  renderLoadingState();
-
   if (extracted && extracted.content) {
     lastTitle = extracted.title || originalTitle;
     try {
@@ -697,6 +847,7 @@ async function transformPage() {
       lastMarkdown = turndownService.turndown(extracted.content) || '';
       lastMarkdown = restoreMissingPrimaryHeading(lastMarkdown, document, extracted.title);
       lastMarkdown = restoreMissingHeroLinks(lastMarkdown, document);
+      lastMarkdown = removeNoise(lastMarkdown);
     } catch (e) {}
 
     if (!lastMarkdown || lastMarkdown.trim().length === 0) {
@@ -719,7 +870,7 @@ async function transformPage() {
 
     if (rawText.length > 20) {
       const lines = rawText.split('\n').filter(l => l.trim()).join('\n\n');
-      lastMarkdown = lines;
+      lastMarkdown = removeNoise(lines);
       lastTitle = originalTitle;
       renderMarkdownPage(lastMarkdown, lastTitle, prefs);
       return;
@@ -754,6 +905,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ ok: true });
     } else if (message.type === 'NAVIGATION') {
       sendResponse({ ok: true });
+      if (transforming) return;
       getPrefs().then((prefs) => {
         if (prefs.alwaysOn) {
           transformed = false;

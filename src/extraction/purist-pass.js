@@ -149,5 +149,18 @@ export function applyPuristPass() {
 
   turndownService.addRule('puristPass', puristRule);
 
+  turndownService.addRule('link', {
+    filter: 'a',
+    replacement: function (content, node) {
+      const href = node.getAttribute('href');
+      const text = content.trim();
+      const visible = text.replace(/[\s\u200B-\u200D\uFEFF]/g, '');
+      if (!href || !visible) return '';
+      const title = (node.getAttribute('title') || '').replace(/(\n+\s*)+/g, '\n');
+      const titleAttr = title ? ` "${title}"` : '';
+      return `[${text}](${href}${titleAttr})`;
+    },
+  });
+
   return turndownService;
 }
